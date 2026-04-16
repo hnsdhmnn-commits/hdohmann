@@ -780,7 +780,10 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
     try{
       const b64=await toB64(file);setPdfB64(b64);
       // PDF não é salvo no Storage — apenas o JSON da análise é salvo na tabela documentos
+      console.log("b64 gerado, tamanho:",b64.length);
+      console.log("Chamando API Anthropic...");
       const res=await chamarAPI(b64);
+      console.log("API respondeu, status:",res.status);
       const data=await res.json();
       if(data.error){setAnalise({erro:`Erro: ${data.error.message||"Tente novamente em alguns segundos."}`});return;}
       const parsed=JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
