@@ -785,8 +785,13 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoStat
       const res=await chamarAPI(b64);
       console.log("API respondeu, status:",res.status);
       const data=await res.json();
-      if(data.error){setAnalise({erro:`Erro: ${data.error.message||"Tente novamente em alguns segundos."}`});return;}
-      const parsed=JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
+      console.log("Resposta:",JSON.stringify(data).slice(0,400));
+      if(data.error){setAnalise({erro:`Erro: ${data.error.message||"Tente novamente."}`});return;}
+      const rawText=data.content?.[0]?.text||"{}";
+      console.log("Texto:",rawText.slice(0,400));
+      let parsed;
+      try{parsed=JSON.parse(rawText.replace(/```json|```/g,"").trim());}
+      catch(pe){console.error("JSON parse erro:",pe.message);setAnalise({erro:"Resposta fora do formato esperado."});return;}
       setAnalise(parsed);
       setChatKey(k=>k+1);
       // Salvar análise no Supabase para persistir entre sessões
