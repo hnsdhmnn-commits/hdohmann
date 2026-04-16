@@ -30,17 +30,19 @@ const AXIS_COLORS={
 };
 
 const EQUIPE=[
-  {id:"enfermeira",nome:"Ana",titulo:"Enfermeira Coordenadora",cor:T.teal,bg:T.tealBg,icon:"🩺",descricao:"Coordena seu plano integral. Acesso a todos os dados e conversas."},
-  {id:"coach",nome:"Coach",titulo:"Coach de Saúde IA",cor:T.gold,bg:T.goldFaint,icon:"⚡",descricao:"Motiva e adapta seu plano com base nos seus dados."},
-  {id:"farmaceutico",nome:"Rafael",titulo:"Farmacêutico Clínico",cor:T.green,bg:T.greenBg,icon:"💊",descricao:"Analisa receitas e verifica interações medicamentosas."},
-  {id:"geneticista",nome:"Dra. Clara",titulo:"Geneticista Clínica",cor:T.purple,bg:T.purpleBg,icon:"🧬",descricao:"Interpreta laudos genéticos com base nos seus resultados."},
+  {id:"enfermeira",nome:"Ana",titulo:"Enfermeira Coordenadora",cor:T.teal,bg:T.tealBg,icon:"🩺",descricao:"Coordena seu plano integral, motivação e acompanhamento MEV."},
+  {id:"nutri",nome:"Dra. Lucia",titulo:"Nutricionista Clínica",cor:T.gold,bg:T.goldFaint,icon:"🥗",descricao:"Orientação nutricional, dieta e suplementação personalizada."},
+  {id:"personal",nome:"Bruno",titulo:"Especialista em Atividade Física",cor:T.orange,bg:T.orangeBg,icon:"🏋️",descricao:"Treino, atividade física e recuperação baseados no seu perfil."},
+  {id:"farmaceutico",nome:"Rafael",titulo:"Farmacêutico Clínico",cor:T.green,bg:T.greenBg,icon:"💊",descricao:"Medicamentos, interações e posologia. Alerta o Dr. Dohmann em caso de risco."},
+  {id:"geneticista",nome:"Dra. Clara",titulo:"Geneticista Clínica",cor:T.purple,bg:T.purpleBg,icon:"🧬",descricao:"Interpreta laudos genéticos e variantes com base nos seus resultados."},
 ];
 
 const MODULOS=[
   {id:"dashboard",label:"Painel",icon:"◈"},
   {id:"plano",label:"Plano de Cuidado",icon:"📋",membro:"enfermeira"},
   {id:"ana",label:"Falar com Ana",icon:"🩺",membro:"enfermeira"},
-  {id:"coach",label:"Coach de Saúde",icon:"⚡",membro:"coach"},
+  {id:"nutri",label:"Nutrição",icon:"🥗",membro:"nutri"},
+  {id:"personal",label:"Atividade Física",icon:"🏋️",membro:"personal"},
   {id:"farmaceutico",label:"Farmácia",icon:"💊",membro:"farmaceutico"},
   {id:"geneticista",label:"Genômica",icon:"🧬",membro:"geneticista"},
   {id:"documentos",label:"Documentos",icon:"📄"},
@@ -256,6 +258,9 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
           {sugestoes.map((s,i)=>(<button key={i} onClick={()=>send(s)} style={{padding:"8px 16px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:20,fontSize:12,color:T.inkMid,cursor:"pointer",fontFamily:T.fB,transition:"all 0.18s",boxShadow:T.shadowCard}} onMouseOver={e=>{e.currentTarget.style.borderColor=eq?.cor||T.gold;e.currentTarget.style.color=eq?.cor||T.gold;}} onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.inkMid;}}>{s}</button>))}
         </div>
       )}
+      <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:`1px solid ${T.border}`,flexShrink:0}}>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>⚠️ Respostas de IA — valide com o Dr. Dohmann antes de decisões clínicas.</div>
+      </div>
       <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
         <textarea ref={inputRef} rows={1} placeholder={apiKey?placeholder:"Configure a API Key..."} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",opacity:apiKey?1:0.5,boxShadow:T.shadowCard}}/>
         <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq?.cor||T.gold:"transparent",border:`1.5px solid ${(!loading&&input.trim()&&apiKey)?eq?.cor||T.gold:T.border}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
@@ -534,14 +539,17 @@ function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
 
   // Sistemas de prompt para cada membro
+  const AVISO_IA="\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo Dr. Dohmann antes de qualquer decisão clínica.";
   const buildPrompt=(membro)=>{
     const base=`Perfil: ${nome}, ${form?.cargo||"Executivo"}, ${form?.idade||"—"} anos. Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Sono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10. Dieta: ${form?.dieta||"—"}. Score: ${scores.total}/100.`;
-    if(membro==="coach")return `Você é o Coach de Saúde da equipe HDohmann. Tom: preciso, empático e motivador. Responda APENAS sobre os 6 eixos MEV. ${base}`;
-    if(membro==="farmaceutico")return `Você é Rafael, farmacêutico clínico da equipe HDohmann. Analise medicamentos e interações. Mencione que alertará o Dr. Dohmann em caso de risco. Nunca altere prescrições. ${base}`;
-    if(membro==="geneticista")return `Você é a Dra. Clara, geneticista da equipe HDohmann. Interprete laudos com precisão. Conecte achados ao plano. Para riscos elevados, informe que o Dr. Dohmann será notificado. ${base}`;
+    if(membro==="nutri")return `Você é a Dra. Lucia, nutricionista clínica da equipe HDohmann. Seu escopo é EXCLUSIVAMENTE nutrição, alimentação, dieta e suplementação. Não responda sobre exercícios, medicamentos ou genômica — oriente o paciente a falar com o especialista correto. Tom: preciso, acolhedor e baseado em evidências. ${base}${AVISO_IA}`;
+    if(membro==="personal")return `Você é Bruno, especialista em atividade física da equipe HDohmann. Seu escopo é EXCLUSIVAMENTE exercício físico, treino, condicionamento e recuperação muscular. Não responda sobre nutrição, medicamentos ou genômica — oriente o paciente a falar com o especialista correto. Tom: motivador, técnico e seguro. ${base}${AVISO_IA}`;
+    if(membro==="farmaceutico")return `Você é Rafael, farmacêutico clínico da equipe HDohmann. Seu escopo é EXCLUSIVAMENTE medicamentos, posologia e interações medicamentosas. Não responda sobre nutrição, exercícios ou genômica. Nunca altere prescrições — apenas informe. Mencione que alertará o Dr. Dohmann em caso de risco. ${base}${AVISO_IA}`;
+    if(membro==="geneticista")return `Você é a Dra. Clara, geneticista clínica da equipe HDohmann. Seu escopo é EXCLUSIVAMENTE interpretação de laudos genéticos e variantes. Não responda sobre nutrição, exercícios ou medicamentos fora do contexto farmacogenômico. Para riscos elevados, informe que o Dr. Dohmann será notificado. ${base}${AVISO_IA}`;
     if(membro==="suporte")return `Você é a Central de Atendimento HDohmann. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
     // Ana — acesso total
-    return `Você é Ana, enfermeira coordenadora da equipe HDohmann do Dr. Dohmann. Ponto central de contato — acesso a TODOS os dados.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10`:"Não realizado"}.\n\nTom: acolhedor, preciso e humano. Pode falar sobre qualquer assunto de saúde. Histórico de conversas está persistido — você tem memória das sessões anteriores.`;
+    const laudoCtx=laudoGenetico?.analise?`\n\nLAUDO GENÉTICO (${laudoGenetico.pdfNome||"disponível"}): ${laudoGenetico.analise.resumo||""}. Risco geral: ${laudoGenetico.analise.nivel_risco_geral||"—"}. Farmacogenômica: ${laudoGenetico.analise.medicamentos||"—"}.`:"\n\nLAUDO GENÉTICO: ainda não enviado.";
+    return `Você é Ana, enfermeira coordenadora e coach de saúde da equipe HDohmann do Dr. Dohmann. Você é o ponto central de contato — tem acesso a TODOS os dados e conversas do paciente.\n\nSeu papel inclui: coordenar o plano integral de saúde, motivar o paciente, acompanhar a evolução dos 6 eixos MEV, fazer check-ins e orientar sobre saúde geral. Para questões específicas de nutrição, exercício, medicamentos ou genômica, você pode orientar inicialmente mas deve direcionar ao especialista correto da equipe.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10`:"Não realizado"}.${laudoCtx}\n\nTom: acolhedor, preciso e humano. Histórico de conversas está persistido — você tem memória das sessões anteriores.\n\n⚠️ IMPORTANTE: Suas respostas são orientações de IA e devem sempre ser validadas pelo Dr. Dohmann antes de qualquer decisão clínica.`;
   };
 
   return(
@@ -588,7 +596,8 @@ function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
         {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
         {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje}/>}
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} systemPrompt={buildPrompt("enfermeira")}/>}
-        {modulo==="coach"&&<ModuloChat membro="coach" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("coach")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Score: ${scores.total}/100. Foco em ${lowAxis[0]} (${lowAxis[1]}/100). Como posso ajudar?`} sugestoes={[`Como melhorar meu ${lowAxis[0].toLowerCase()}?`,"Qual minha prioridade esta semana?","Como o estresse afeta meu sono?"]}/>}
+        {modulo==="nutri"&&<ModuloChat membro="nutri" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("nutri")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Dra. Lucia, sua nutricionista. Dieta atual: ${form?.dieta||"não informada"}. Score de Nutrição: ${scores.eixos["Nutrição"]}/100. Como posso ajudar?`} sugestoes={["O que devo comer antes do treino?","Como melhorar minha alimentação?","Quais suplementos são indicados para mim?","Como montar um cardápio executivo?"]}/>}
+        {modulo==="personal"&&<ModuloChat membro="personal" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("personal")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o Bruno, seu especialista em atividade física. Treino atual: ${form?.freq_treino||0}x/semana. Score de Atividade: ${scores.eixos["Atividade"]}/100. Como posso ajudar?`} sugestoes={["Monte um treino para minha rotina executiva","Como treinar com pouco tempo?","Qual a melhor atividade para reduzir estresse?","Como melhorar minha recuperação?"]}/>}
         {modulo==="farmaceutico"&&<ModuloChat membro="farmaceutico" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("farmaceutico")} inicialMsg={`Olá! Sou Rafael. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Em que posso ajudar?`} sugestoes={["Verificar interações","Como tomar minha medicação?","Posso tomar vitaminas junto?"]}/>}
         {modulo==="geneticista"&&<ModuloGeneticista form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("geneticista")} laudoState={laudoGenetico} setLaudoState={setLaudoGenetico}/>}
         {modulo==="documentos"&&<ModuloDocumentos apiKey={apiKey} pacienteId={pacienteId} onPlanUpdate={onPlanUpdate}/>}
@@ -737,6 +746,9 @@ Responda com precisão clínica baseada nestes achados.`;
           {["O que significam minhas variantes de risco?","Como isso afeta minha nutrição?","Quais exames preventivos são prioritários?","Como meus genes afetam meus medicamentos?"].map((s,i)=>(<button key={i} onClick={()=>send(s)} style={{padding:"8px 16px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:20,fontSize:12,color:T.inkMid,cursor:"pointer",fontFamily:T.fB,transition:"all 0.18s"}} onMouseOver={e=>{e.currentTarget.style.borderColor=eq.cor;e.currentTarget.style.color=eq.cor;}} onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.inkMid;}}>{s}</button>))}
         </div>
       )}
+      <div style={{padding:"6px 28px",background:T.surfaceMid,borderTop:`1px solid ${T.border}`,flexShrink:0}}>
+        <div style={{fontSize:10,color:T.inkFaint,lineHeight:1.6}}>⚠️ Respostas de IA — valide com o Dr. Dohmann antes de decisões clínicas.</div>
+      </div>
       <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
         <textarea ref={inputRef} rows={1} placeholder="Pergunte sobre seus resultados genéticos..." value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",boxShadow:T.shadowCard}}/>
         <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq.cor:"transparent",border:`1.5px solid ${(!loading&&input.trim()&&apiKey)?eq.cor:T.border}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
