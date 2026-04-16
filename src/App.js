@@ -162,15 +162,20 @@ async function salvarAnaliseGenetica(pacienteId,analise,pdfNome){
 }
 
 async function carregarAnaliseGenetica(pacienteId){
-  const{data}=await supabase.from("documentos")
-    .select("conteudo_json,titulo")
-    .eq("paciente_id",pacienteId)
-    .eq("tipo","genetico")
-    .order("created_at",{ascending:false})
-    .limit(1)
-    .single();
-  if(!data)return null;
-  return{analise:data.conteudo_json,pdfNome:data.conteudo_json?.pdfNome||data.titulo};
+  try{
+    const{data}=await supabase.from("documentos")
+      .select("conteudo_json,titulo")
+      .eq("paciente_id",pacienteId)
+      .eq("tipo","genetico")
+      .order("created_at",{ascending:false})
+      .limit(1)
+      .maybeSingle();
+    if(!data)return null;
+    return{analise:data.conteudo_json,pdfNome:data.conteudo_json?.pdfNome||data.titulo};
+  }catch(e){
+    console.log("Nenhum laudo salvo ainda");
+    return null;
+  }
 }
 
 // ─── UI Primitives ────────────────────────────────────────────────
