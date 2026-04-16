@@ -1,24 +1,40 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
 
+// ─── Supabase Client ──────────────────────────────────────────────
+const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem5ld2trY3lha2tpbGFhdGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQzMTIsImV4cCI6MjA5MTg3MDMxMn0.4nFFkuhRTNCXFnkSQDjc_JNi0yoHUBUfT4mgcQ2-3ak";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── Design Tokens ────────────────────────────────────────────────
 const T = {
-  bg:"#F7F5F0",bgWarm:"#FDFCF9",surface:"#FFFFFF",surfaceMid:"#F2EFE8",
+  bg:"#F7F5F0",bgWarm:"#FDFCF9",surface:"#FFFFFF",
+  surfaceMid:"#F2EFE8",surfaceHi:"#EDE8DF",
   border:"#E8E2D8",borderMid:"#D4CCBC",
-  shadowCard:"0 2px 8px rgba(60,50,30,0.07)",shadowHover:"0 4px 16px rgba(60,50,30,0.12)",
+  shadowCard:"0 2px 8px rgba(60,50,30,0.07)",
+  shadowHover:"0 4px 16px rgba(60,50,30,0.12)",
   ink:"#1A1612",inkMid:"#4A4038",inkLight:"#8A7E6E",inkFaint:"#B8AE9E",
   gold:"#B8922A",goldFaint:"#F5EDD8",goldBorder:"#E8D098",
-  teal:"#2A8E86",tealBg:"#EAF5F4",green:"#2A7A4A",greenBg:"#EAF4EE",
-  red:"#B84030",redBg:"#FBF0EE",purple:"#6A48B8",purpleBg:"#F2EEF9",
-  blue:"#2858A8",blueBg:"#EEF2FA",orange:"#B86028",orangeBg:"#FBF2EE",
-  fD:"'Cormorant Garamond',Georgia,serif",fB:"'DM Mono','Courier New',monospace",
+  teal:"#2A8E86",tealBg:"#EAF5F4",
+  green:"#2A7A4A",greenBg:"#EAF4EE",
+  red:"#B84030",redBg:"#FBF0EE",
+  purple:"#6A48B8",purpleBg:"#F2EEF9",
+  blue:"#2858A8",blueBg:"#EEF2FA",
+  orange:"#B86028",orangeBg:"#FBF2EE",
+  fD:"'Cormorant Garamond',Georgia,serif",
+  fB:"'DM Mono','Courier New',monospace",
 };
 
-const AXIS_COLORS={"Nutrição":T.gold,"Atividade":T.teal,"Sono":T.purple,"Estresse":T.red,"Relacionamentos":T.green,"Substâncias":T.blue};
+const AXIS_COLORS={
+  "Nutrição":T.gold,"Atividade":T.teal,"Sono":T.purple,
+  "Estresse":T.red,"Relacionamentos":T.green,"Substâncias":T.blue,
+};
 
 const EQUIPE=[
-  {id:"enfermeira",nome:"Ana",titulo:"Enfermeira Coordenadora",cor:T.teal,bg:T.tealBg,icon:"🩺",descricao:"Coordena seu plano integral. Acesso a todos os dados e conversas da sua equipe."},
-  {id:"coach",nome:"Coach",titulo:"Coach de Saúde IA",cor:T.gold,bg:T.goldFaint,icon:"⚡",descricao:"Motiva e adapta seu plano com base nos seus dados e objetivos."},
-  {id:"farmaceutico",nome:"Rafael",titulo:"Farmacêutico Clínico",cor:T.green,bg:T.greenBg,icon:"💊",descricao:"Analisa receitas e verifica interações. Alerta o Dr. Dohmann em casos de risco."},
-  {id:"geneticista",nome:"Dra. Clara",titulo:"Geneticista Clínica",cor:T.purple,bg:T.purpleBg,icon:"🧬",descricao:"Interpreta laudos genéticos com base nos seus resultados reais."},
+  {id:"enfermeira",nome:"Ana",titulo:"Enfermeira Coordenadora",cor:T.teal,bg:T.tealBg,icon:"🩺",descricao:"Coordena seu plano integral. Acesso a todos os dados e conversas."},
+  {id:"coach",nome:"Coach",titulo:"Coach de Saúde IA",cor:T.gold,bg:T.goldFaint,icon:"⚡",descricao:"Motiva e adapta seu plano com base nos seus dados."},
+  {id:"farmaceutico",nome:"Rafael",titulo:"Farmacêutico Clínico",cor:T.green,bg:T.greenBg,icon:"💊",descricao:"Analisa receitas e verifica interações medicamentosas."},
+  {id:"geneticista",nome:"Dra. Clara",titulo:"Geneticista Clínica",cor:T.purple,bg:T.purpleBg,icon:"🧬",descricao:"Interpreta laudos genéticos com base nos seus resultados."},
 ];
 
 const MODULOS=[
@@ -29,41 +45,21 @@ const MODULOS=[
   {id:"farmaceutico",label:"Farmácia",icon:"💊",membro:"farmaceutico"},
   {id:"geneticista",label:"Genômica",icon:"🧬",membro:"geneticista"},
   {id:"documentos",label:"Documentos",icon:"📄"},
+  {id:"mensagens",label:"Mensagens",icon:"💬"},
   {id:"integracoes",label:"Integrações",icon:"🔗"},
-  {id:"suporte",label:"Suporte",icon:"💬"},
 ];
 
-const PAINEL_GENETICO=[
-  {cat:"Risco Cardiovascular",icon:"❤️",color:T.red,bg:T.redBg,genes:["APOE","PCSK9","LDLR","MTHFR","F5","ACE"],desc:"Predisposição a doenças coronárias, AVC e hipertensão."},
-  {cat:"Risco de Câncer",icon:"🔬",color:T.purple,bg:T.purpleBg,genes:["BRCA1/2","TP53","MLH1","MSH2","CHEK2","ATM"],desc:"Predisposição hereditária. Orientação para rastreamento preventivo."},
-  {cat:"Farmacogenômica",icon:"💊",color:T.blue,bg:T.blueBg,genes:["CYP2C19","CYP2D6","CYP3A4","VKORC1","SLCO1B1"],desc:"Como seu corpo metaboliza medicamentos."},
-  {cat:"Perfil Metabólico",icon:"⚗️",color:T.gold,bg:T.goldFaint,genes:["FTO","MC4R","PPARG","ADRB3","TCF7L2"],desc:"Tendência ao ganho de peso e metabolismo de gorduras."},
-  {cat:"Nutrição de Precisão",icon:"🥗",color:T.teal,bg:T.tealBg,genes:["MTHFR","VDR","BCMO1","LCT","HFE"],desc:"Absorção de vitaminas e intolerância à lactose."},
-  {cat:"Performance e Sono",icon:"⚡",color:T.green,bg:T.greenBg,genes:["ACTN3","ACE","PPARGC1A","PER3","CLOCK"],desc:"Potencial atlético, cronótipo e recuperação muscular."},
-];
-
-const INTEGRACOES=[
-  {id:"samsung",nome:"Samsung Health",icon:"📱",color:T.blue,plat:["Android"],passos:["Abra o Samsung Health no Android","Emparelhe Galaxy Watch ou Ring via Bluetooth","Configurações → Google Fit → Conectar","HDohmann lê via Google Fit automaticamente"]},
-  {id:"apple",nome:"Apple Health",icon:"❤️",color:T.red,plat:["iOS"],passos:["Abra o app Saúde no iPhone","Vá em seu nome → Apps e Dispositivos","Autorize o HDohmann na primeira abertura","Sincronização automática em segundo plano"]},
-  {id:"watch",nome:"Apple Watch",icon:"⌚",color:T.blue,plat:["iOS"],passos:["Emparelhe com iPhone pelo app Watch","Ative monitoramento de sono em Saúde → Sono","Ative HRV em Configurações → Privacidade","Dados chegam via Apple Health automaticamente"]},
-  {id:"garmin",nome:"Garmin",icon:"🏔",color:T.orange,plat:["iOS","Android"],passos:["Instale o Garmin Connect e emparelhe","Ative compartilhamento nas configurações","Conecte ao Apple Health ou Google Fit","HDohmann recebe Body Battery e VO2 max"]},
-  {id:"oura",nome:"Oura Ring",icon:"💍",color:T.purple,plat:["iOS","Android"],passos:["Baixe o app Oura e emparelhe via Bluetooth","Use toda noite durante o sono","App Oura → Perfil → Apple Health → Ativar","Android: Personal Token em cloud.ouraring.com"]},
-  {id:"whoop",nome:"Whoop 4.0",icon:"📿",color:T.green,plat:["iOS","Android"],passos:["Baixe o app Whoop e emparelhe","Use 24h — sempre no pulso","App Whoop → Perfil → Apple Health → Conectar","Recovery Score ajusta intensidade do treino"]},
-  {id:"withings",nome:"Withings Scale",icon:"⚖️",color:T.gold,plat:["iOS","Android"],passos:["Instale Health Mate e configure via Wi-Fi","Pese-se pela manhã antes de comer","Health Mate → Apple Health → Sincronizar","HDohmann ajusta metas nutricionais"]},
-  {id:"dexcom",nome:"Dexcom G7",icon:"📡",color:T.orange,plat:["iOS","Android"],passos:["Necessita prescrição médica","Aplique o sensor na parte posterior do braço","Instale o app Dexcom G7","App Dexcom → Apple Health → Ativar"]},
-  {id:"outros",nome:"Outros",icon:"🔌",color:T.inkLight,plat:["iOS","Android"],passos:["Conecte ao app oficial do fabricante","Ative integração com Apple Health ou Google Fit","HDohmann lê automaticamente via esses hubs","Dúvidas? Contate o suporte HDohmann"]},
-];
-
+// ─── Score ────────────────────────────────────────────────────────
 function calcScores(form,checkin){
   const f=form;
   if(!f)return{eixos:{"Nutrição":72,"Atividade":65,"Sono":80,"Estresse":60,"Relacionamentos":55,"Substâncias":88},total:70};
   const s={"Nutrição":55,"Atividade":50,"Sono":55,"Estresse":55,"Relacionamentos":55,"Substâncias":80};
-  s["Sono"]=Math.min(100,(Number(f.sono)>=7?82:Number(f.sono)>=6?62:42)+(Number(f.qualSono)||5)*1.5);
-  s["Atividade"]=Math.min(100,35+(Number(f.freqTreino)||0)*11);
+  s["Sono"]=Math.min(100,(Number(f.sono)>=7?82:Number(f.sono)>=6?62:42)+(Number(f.qual_sono)||5)*1.5);
+  s["Atividade"]=Math.min(100,35+(Number(f.freq_treino)||0)*11);
   s["Estresse"]=Math.max(20,100-(Number(f.estresse)||5)*8+(f.meditacao===1?10:0));
   s["Nutrição"]={"Mediterrâneo":84,"Low-carb":76,"Vegetariano":78,"Vegano":80}[f.dieta]||58;
   s["Substâncias"]={"Nunca":96,"Ocasional":82,"Semanal":64,"Diário":38}[f.alcool]||70;
-  s["Relacionamentos"]=Math.max(30,65+(Number(f.horasTrab)>60?-12:8));
+  s["Relacionamentos"]=Math.max(30,65+(Number(f.horas_trab)>60?-12:8));
   if(checkin){
     if(checkin.sono)s["Sono"]=Math.round(s["Sono"]*0.4+Number(checkin.sono)*10*0.6);
     if(checkin.energia)s["Atividade"]=Math.round(s["Atividade"]*0.7+Number(checkin.energia)*10*0.3);
@@ -74,47 +70,132 @@ function calcScores(form,checkin){
   return{eixos:s,total:Math.round(Object.values(s).reduce((a,b)=>a+b,0)/6)};
 }
 
-async function saveUser(id,data){try{await window.storage.set(`user:${id}`,JSON.stringify(data));}catch(e){}}
-async function loadUser(id){try{const r=await window.storage.get(`user:${id}`);return r?JSON.parse(r.value):null;}catch(e){return null;}}
-async function saveProfile(id,data){try{await window.storage.set(`profile:${id}`,JSON.stringify(data));}catch(e){}}
-async function loadProfile(id){try{const r=await window.storage.get(`profile:${id}`);return r?JSON.parse(r.value):null;}catch(e){return null;}}
-async function saveCheckin(id,data){try{await window.storage.set(`checkin:${id}`,JSON.stringify(data));}catch(e){}}
-async function loadCheckin(id){try{const r=await window.storage.get(`checkin:${id}`);return r?JSON.parse(r.value):null;}catch(e){return null;}}
-async function savePlanLog(id,data){try{await window.storage.set(`planlog:${id}`,JSON.stringify(data));}catch(e){}}
-async function loadPlanLog(id){try{const r=await window.storage.get(`planlog:${id}`);return r?JSON.parse(r.value):[];}catch(e){return[];}}
+// ─── Supabase Helpers ─────────────────────────────────────────────
+async function getPacienteId(userId){
+  const{data}=await supabase.from("pacientes").select("id").eq("user_id",userId).single();
+  return data?.id;
+}
 
+async function salvarCheckinDB(pacienteId,dados){
+  const{error}=await supabase.from("checkins").upsert({
+    paciente_id:pacienteId,
+    data:new Date().toISOString().slice(0,10),
+    hora:new Date().toTimeString().slice(0,8),
+    sono:dados.sono,energia:dados.energia,
+    estresse:dados.estresse,humor:dados.humor,
+    sintomas:dados.sintomas,notas:dados.notas,
+  },{onConflict:"paciente_id,data"});
+  return!error;
+}
+
+async function carregarCheckinHoje(pacienteId){
+  const hoje=new Date().toISOString().slice(0,10);
+  const{data}=await supabase.from("checkins").select("*").eq("paciente_id",pacienteId).eq("data",hoje).single();
+  return data;
+}
+
+async function salvarPlanLog(pacienteId,evento){
+  await supabase.from("plano_log").insert({
+    paciente_id:pacienteId,
+    icon:evento.icon,cor:evento.cor,
+    titulo:evento.titulo,descricao:evento.descricao,
+    data:new Date().toISOString().slice(0,10),
+  });
+}
+
+async function carregarPlanLog(pacienteId){
+  const{data}=await supabase.from("plano_log").select("*").eq("paciente_id",pacienteId).order("created_at",{ascending:false}).limit(20);
+  return data||[];
+}
+
+async function salvarMensagemChat(pacienteId,membro,role,content){
+  await supabase.from("chats").insert({paciente_id:pacienteId,membro,role,content});
+}
+
+async function carregarHistoricoChat(pacienteId,membro){
+  const{data}=await supabase.from("chats").select("*").eq("paciente_id",pacienteId).eq("membro",membro).order("created_at",{ascending:true}).limit(50);
+  return(data||[]).map(m=>({role:m.role,content:m.content}));
+}
+
+async function salvarDocumento(pacienteId,doc){
+  const{data}=await supabase.from("documentos").insert({
+    paciente_id:pacienteId,
+    titulo:doc.titulo,tipo:doc.tipo,origem:"paciente",
+    resumo:doc.resumo,conteudo_json:doc.analise,
+    data:new Date().toISOString().slice(0,10),
+  }).select().single();
+  return data;
+}
+
+async function carregarDocumentos(pacienteId){
+  const{data}=await supabase.from("documentos").select("*").eq("paciente_id",pacienteId).order("created_at",{ascending:false});
+  return data||[];
+}
+
+async function carregarMensagens(pacienteId){
+  const{data}=await supabase.from("mensagens").select("*").eq("paciente_id",pacienteId).order("created_at",{ascending:true});
+  return data||[];
+}
+
+async function marcarMensagensLidas(pacienteId){
+  await supabase.from("mensagens").update({lida:true}).eq("paciente_id",pacienteId).eq("remetente","ana").eq("lida",false);
+}
+
+// ─── UI Primitives ────────────────────────────────────────────────
 function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.18em",color:color||T.inkLight,textTransform:"uppercase",marginBottom:8,fontFamily:T.fB,fontWeight:600}}>{children}</div>;}
-function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return(<div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>);}
-function Btn({children,onClick,variant="primary",disabled=false,style={}}){const v={primary:{background:T.ink,color:"#FFF",border:`1px solid ${T.ink}`},gold:{background:T.gold,color:"#FFF",border:`1px solid ${T.gold}`},outline:{background:"transparent",color:T.ink,border:`1px solid ${T.border}`},teal:{background:T.teal,color:"#FFF",border:`1px solid ${T.teal}`},ghost:{background:"transparent",color:T.inkLight,border:"none"}};return(<button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"11px 24px",borderRadius:8,fontFamily:T.fB,fontSize:11,letterSpacing:"0.16em",fontWeight:600,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.2s",...v[variant],...style}}>{children}</button>);}
-function TxtInput({label,placeholder,value,onChange,type="text",unit,autoFocus,error}){const[foc,setFoc]=useState(false);return(<div>{label&&<Lbl>{label}</Lbl>}<div style={{position:"relative"}}><input autoFocus={autoFocus} type={type} placeholder={placeholder} value={value||""} onChange={e=>onChange(e.target.value)} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)} style={{width:"100%",background:T.bgWarm,border:`1.5px solid ${error?T.red:foc?T.gold:T.border}`,borderRadius:8,padding:unit?"11px 48px 11px 14px":"11px 14px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",transition:"border-color 0.2s",boxSizing:"border-box"}}/>{unit&&<span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:10,color:T.inkLight}}>{unit}</span>}</div>{error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}</div>);}
-function SldInput({label,value,onChange,min,max,unit,color=T.gold}){return(<div><div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><Lbl>{label}</Lbl><span style={{fontSize:16,color,fontFamily:T.fD,fontWeight:700}}>{value}{unit}</span></div><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:T.inkFaint}}>{min}</span><span style={{fontSize:9,color:T.inkFaint}}>{max}</span></div></div>);}
-function Chip({label,active,color=T.gold,bg,onClick}){return(<button onClick={onClick} style={{padding:"8px 14px",borderRadius:6,cursor:"pointer",fontFamily:T.fB,fontSize:12,background:active?(bg||T.goldFaint):"transparent",border:`1.5px solid ${active?color:T.border}`,color:active?color:T.inkMid,transition:"all 0.18s"}}>{label}</button>);}
-function RadialScore({value,size=100}){const r=size/2-9,circ=2*Math.PI*r,dash=(value/100)*circ,color=value>=75?T.green:value>=50?T.gold:T.red;return(<svg width={size} height={size}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.surfaceMid} strokeWidth="7"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="7" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} style={{transition:"stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)"}}/><text x={size/2} y={size/2-6} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize="20" fontFamily="Georgia,serif" fontWeight="700">{value}</text><text x={size/2} y={size/2+14} textAnchor="middle" dominantBaseline="middle" fill={T.inkFaint} fontSize="9" fontFamily="'DM Mono',monospace">/100</text></svg>);}
+function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
+function Btn({children,onClick,variant="primary",disabled=false,style={}}){const v={primary:{background:T.ink,color:"#FFF",border:`1px solid ${T.ink}`},gold:{background:T.gold,color:"#FFF",border:`1px solid ${T.gold}`},outline:{background:"transparent",color:T.ink,border:`1px solid ${T.border}`},teal:{background:T.teal,color:"#FFF",border:`1px solid ${T.teal}`},ghost:{background:"transparent",color:T.inkLight,border:"none"}};return <button onClick={disabled?undefined:onClick} disabled={disabled} style={{padding:"11px 24px",borderRadius:8,fontFamily:T.fB,fontSize:11,letterSpacing:"0.16em",fontWeight:600,cursor:disabled?"not-allowed":"pointer",opacity:disabled?0.4:1,transition:"all 0.2s",...v[variant],...style}}>{children}</button>;}
+function TxtInput({label,placeholder,value,onChange,type="text",unit,autoFocus,error}){const[foc,setFoc]=useState(false);return <div>{label&&<Lbl>{label}</Lbl>}<div style={{position:"relative"}}><input autoFocus={autoFocus} type={type} placeholder={placeholder} value={value||""} onChange={e=>onChange(e.target.value)} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)} style={{width:"100%",background:T.bgWarm,border:`1.5px solid ${error?T.red:foc?T.gold:T.border}`,borderRadius:8,padding:unit?"11px 48px 11px 14px":"11px 14px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",transition:"border-color 0.2s",boxSizing:"border-box"}}/>{unit&&<span style={{position:"absolute",right:14,top:"50%",transform:"translateY(-50%)",fontSize:10,color:T.inkLight}}>{unit}</span>}</div>{error&&<div style={{fontSize:11,color:T.red,marginTop:4}}>{error}</div>}</div>;}
+function SldInput({label,value,onChange,min,max,unit,color=T.gold}){return <div><div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}><Lbl>{label}</Lbl><span style={{fontSize:16,color,fontFamily:T.fD,fontWeight:700}}>{value}{unit}</span></div><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))} style={{width:"100%",accentColor:color,cursor:"pointer",height:4}}/><div style={{display:"flex",justifyContent:"space-between",marginTop:4}}><span style={{fontSize:9,color:T.inkFaint}}>{min}</span><span style={{fontSize:9,color:T.inkFaint}}>{max}</span></div></div>;}
+function Chip({label,active,color=T.gold,bg,onClick}){return <button onClick={onClick} style={{padding:"8px 14px",borderRadius:6,cursor:"pointer",fontFamily:T.fB,fontSize:12,background:active?(bg||T.goldFaint):"transparent",border:`1.5px solid ${active?color:T.border}`,color:active?color:T.inkMid,transition:"all 0.18s"}}>{label}</button>;}
+function RadialScore({value,size=100}){const r=size/2-9,circ=2*Math.PI*r,dash=(value/100)*circ,color=value>=75?T.green:value>=50?T.gold:T.red;return <svg width={size} height={size}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={T.surfaceMid} strokeWidth="7"/><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="7" strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" transform={`rotate(-90 ${size/2} ${size/2})`} style={{transition:"stroke-dasharray 1.4s cubic-bezier(0.34,1.56,0.64,1)"}}/><text x={size/2} y={size/2-6} textAnchor="middle" dominantBaseline="middle" fill={color} fontSize="20" fontFamily="Georgia,serif" fontWeight="700">{value}</text><text x={size/2} y={size/2+14} textAnchor="middle" dominantBaseline="middle" fill={T.inkFaint} fontSize="9" fontFamily="'DM Mono',monospace">/100</text></svg>;}
 
-function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdfB64}){
+// ─── ChatIA com persistência ──────────────────────────────────────
+function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdfB64,pacienteId}){
   const eq=EQUIPE.find(e=>e.id===membro);
   const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
   const[input,setInput]=useState("");
   const[loading,setLoading]=useState(false);
+  const[carregando,setCarregando]=useState(true);
   const bottomRef=useRef(null);
   const inputRef=useRef(null);
+
+  // Carregar histórico do Supabase
+  useEffect(()=>{
+    if(!pacienteId)return;
+    carregarHistoricoChat(pacienteId,membro).then(hist=>{
+      if(hist.length>0)setMsgs([{role:"assistant",content:inicialMsg},...hist]);
+      setCarregando(false);
+    }).catch(()=>setCarregando(false));
+  },[pacienteId,membro]);
+
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
   const send=async(text)=>{
     if(!text.trim()||loading||!apiKey)return;
     const userMsg={role:"user",content:text};
     setMsgs(prev=>[...prev,userMsg,{role:"assistant",content:"",loading:true}]);
     setInput("");setLoading(true);
+    // Salvar mensagem do usuário no Supabase
+    if(pacienteId)await salvarMensagemChat(pacienteId,membro,"user",text);
     try{
-      const history=[...msgs,userMsg].map((m,i)=>{
+      const history=[...msgs,userMsg].filter(m=>!m.loading).map((m,i)=>{
         if(i===0&&pdfB64&&m.role==="user")return{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:m.content}]};
         return{role:m.role,content:m.content};
       });
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:900,system:systemPrompt,messages:history})});
       const data=await res.json();
-      setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:data.content?.[0]?.text||"Erro ao processar."}]);
-    }catch{setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:"Erro de conexão. Verifique sua API Key."}]);}
-    finally{setLoading(false);setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);inputRef.current?.focus();}
+      const resposta=data.content?.[0]?.text||"Erro ao processar.";
+      setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:resposta}]);
+      // Salvar resposta da IA no Supabase
+      if(pacienteId)await salvarMensagemChat(pacienteId,membro,"assistant",resposta);
+    }catch{
+      setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:"Erro de conexão. Verifique sua API Key."}]);
+    }finally{setLoading(false);setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);inputRef.current?.focus();}
   };
+
+  if(carregando)return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:12,color:T.inkFaint}}>Carregando histórico...</div></div>;
+
   return(
     <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
       <div style={{flex:1,overflowY:"auto",padding:"24px 28px 8px"}}>
@@ -134,21 +215,45 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
   );
 }
 
+// ─── LOGIN ────────────────────────────────────────────────────────
 function ScreenLogin({onLogin}){
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");const[pass,setPass]=useState("");const[name,setName]=useState("");
   const[err,setErr]=useState("");const[loading,setLoading]=useState(false);
+
   const handleSubmit=async()=>{
     if(!email||!pass){setErr("Preencha todos os campos.");return;}
     if(mode==="register"&&!name){setErr("Informe seu nome.");return;}
     setLoading(true);setErr("");
-    const userId=btoa(email).replace(/[^a-zA-Z0-9]/g,"");
     try{
-      if(mode==="register"){const ex=await loadUser(userId);if(ex){setErr("E-mail já cadastrado.");setLoading(false);return;}await saveUser(userId,{email,name,pass:btoa(pass),createdAt:new Date().toISOString()});onLogin({userId,email,name});}
-      else{const ud=await loadUser(userId);if(!ud){setErr("E-mail não encontrado.");setLoading(false);return;}if(ud.pass!==btoa(pass)){setErr("Senha incorreta.");setLoading(false);return;}onLogin({userId,email,name:ud.name});}
-    }catch{setErr("Erro ao acessar.");}
+      if(mode==="register"){
+        const{data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{name}}});
+        if(error)throw error;
+        if(data.user){
+          // Criar registro na tabela pacientes
+          // Médico padrão — buscar o primeiro médico cadastrado
+          const{data:medico}=await supabase.from("medicos").select("id").limit(1).single();
+          await supabase.from("pacientes").insert({
+            user_id:data.user.id,
+            medico_id:medico?.id,
+            nome:name,email,
+            plano:"Essential",
+          });
+          onLogin({userId:data.user.id,email,name});
+        }
+      }else{
+        const{data,error}=await supabase.auth.signInWithPassword({email,password:pass});
+        if(error)throw error;
+        if(data.user){
+          onLogin({userId:data.user.id,email,name:data.user.user_metadata?.name||email.split("@")[0]});
+        }
+      }
+    }catch(e){
+      setErr(e.message==="Invalid login credentials"?"E-mail ou senha incorretos.":e.message||"Erro ao acessar.");
+    }
     setLoading(false);
   };
+
   return(
     <div style={{minHeight:"100vh",background:T.bg,display:"flex",fontFamily:T.fB,color:T.ink}}>
       <div style={{width:"44%",flexShrink:0,background:T.surface,borderRight:`1px solid ${T.border}`,padding:"52px",display:"flex",flexDirection:"column",justifyContent:"space-between",boxShadow:"4px 0 24px rgba(60,50,30,0.06)"}}>
@@ -157,8 +262,8 @@ function ScreenLogin({onLogin}){
           <div style={{width:110,height:110,borderRadius:"50%",background:`linear-gradient(135deg,${T.goldFaint},${T.surfaceMid})`,border:`2px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:28,boxShadow:T.shadowCard}}><span style={{fontFamily:T.fD,fontSize:44,color:T.gold}}>D</span></div>
           <div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:4}}>Dr. [Nome] Dohmann</div>
           <div style={{fontSize:11,color:T.gold,letterSpacing:"0.18em",marginBottom:28,fontWeight:600}}>CARDIOLOGISTA · MEDICINA DO ESTILO DE VIDA</div>
-          <div style={{fontSize:13,color:T.inkMid,lineHeight:2,marginBottom:20,borderLeft:`3px solid ${T.goldBorder}`,paddingLeft:20}}>[Bio do Dr. Dohmann — especialista em Medicina do Estilo de Vida com mais de X anos de experiência no cuidado de executivos de alta performance.]</div>
-          <div style={{fontSize:13,color:T.inkMid,lineHeight:2}}>Filosofia: não tratar doenças, mas <em>desenvolver saúde e produtividade</em> de forma contínua e personalizada.</div>
+          <div style={{fontSize:13,color:T.inkMid,lineHeight:2,marginBottom:20,borderLeft:`3px solid ${T.goldBorder}`,paddingLeft:20}}>Especialista em Medicina do Estilo de Vida dedicado a desenvolver saúde e produtividade de executivos de alta performance.</div>
+          <div style={{fontSize:13,color:T.inkMid,lineHeight:2}}>Filosofia: não tratar doenças, mas <em>desenvolver saúde e produtividade</em>.</div>
         </div>
         <div><Lbl>Sua equipe de cuidado</Lbl><div style={{display:"flex",gap:16,marginTop:12}}>{EQUIPE.map(e=>(<div key={e.id} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}><div style={{width:48,height:48,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{e.icon}</div><span style={{fontSize:9,color:T.inkLight,textAlign:"center"}}>{e.nome}</span></div>))}</div></div>
       </div>
@@ -181,6 +286,7 @@ function ScreenLogin({onLogin}){
   );
 }
 
+// ─── API KEY ──────────────────────────────────────────────────────
 function ScreenApiKey({user,onConfirm}){
   const[key,setKey]=useState("");const[err,setErr]=useState("");
   return(
@@ -190,18 +296,17 @@ function ScreenApiKey({user,onConfirm}){
         <Card style={{padding:"0",overflow:"hidden"}}>
           <div style={{background:`linear-gradient(135deg,${T.goldFaint},${T.surface})`,padding:"28px 32px",borderBottom:`1px solid ${T.border}`}}>
             <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Olá, {user.name.split(" ")[0]}! Um último passo.</div>
-            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.9}}>Para ativar sua equipe de saúde, o app precisa de uma <strong style={{color:T.ink}}>chave de acesso à inteligência artificial</strong>.</div>
+            <div style={{fontSize:13,color:T.inkMid,lineHeight:1.9}}>Para ativar sua equipe de saúde, insira sua <strong style={{color:T.ink}}>chave de acesso à IA</strong>.</div>
           </div>
           <div style={{padding:"20px 32px",borderBottom:`1px solid ${T.border}`,background:T.bgWarm}}>
-            <Lbl>O que é essa chave?</Lbl>
-            {[{icon:"🤖",text:"Conecta o app à IA que dá vida à sua equipe HDohmann"},{icon:"🔒",text:"Fica salva apenas no seu dispositivo — não é compartilhada"},{icon:"💳",text:"Custo baixo — menos de R$ 2 por mês para uso normal"},{icon:"🎁",text:"Se seu médico forneceu uma chave, use ela diretamente abaixo"}].map((item,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{fontSize:16,flexShrink:0}}>{item.icon}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{item.text}</span></div>))}
+            {[{icon:"🤖",text:"Conecta o app à IA da sua equipe HDohmann"},{icon:"🔒",text:"Fica salva apenas no seu dispositivo"},{icon:"💳",text:"Custo baixo — menos de R$ 2 por mês"},{icon:"🎁",text:"Se seu médico forneceu uma chave, use ela aqui"}].map((item,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:8}}><span style={{fontSize:16,flexShrink:0}}>{item.icon}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{item.text}</span></div>))}
           </div>
           <div style={{padding:"24px 32px"}}>
             <TxtInput label="Chave de Acesso (API Key)" placeholder="sk-ant-api03-..." value={key} onChange={v=>{setKey(v);setErr("");}} error={err} autoFocus/>
             <div style={{marginTop:16}}><Btn onClick={()=>key.startsWith("sk-")?onConfirm(key):setErr("Chave inválida. Deve começar com sk-ant-")} variant="gold" style={{width:"100%",padding:"13px"}}>ATIVAR MINHA EQUIPE →</Btn></div>
             <div style={{marginTop:20,padding:"14px 16px",background:T.surfaceMid,borderRadius:8,border:`1px solid ${T.border}`}}>
-              <Lbl>Não tem uma chave? Obtenha em 2 minutos:</Lbl>
-              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.9}}>1. Acesse <span style={{color:T.gold,fontWeight:600}}>console.anthropic.com</span><br/>2. Crie uma conta gratuita<br/>3. Menu lateral → <strong>API Keys</strong> → <strong>+ Create Key</strong><br/>4. Copie e cole aqui</div>
+              <Lbl>Não tem uma chave?</Lbl>
+              <div style={{fontSize:12,color:T.inkMid,lineHeight:1.9}}>1. Acesse <span style={{color:T.gold,fontWeight:600}}>console.anthropic.com</span><br/>2. Crie uma conta gratuita<br/>3. API Keys → + Create Key<br/>4. Copie e cole aqui</div>
             </div>
           </div>
         </Card>
@@ -210,14 +315,15 @@ function ScreenApiKey({user,onConfirm}){
   );
 }
 
+// ─── BOAS-VINDAS ──────────────────────────────────────────────────
 function ScreenBoasVindas({onStart}){
   const[slide,setSlide]=useState(0);
   const slides=[
-    {icon:"🏥",titulo:"Saúde não é ausência de doença",texto:"O HDohmann existe para desenvolver sua saúde e produtividade — não apenas tratar problemas quando surgem. Complementar ao seu médico atual.",cor:T.gold},
-    {icon:"👥",titulo:"Sua equipe de saúde dedicada",texto:"Ana coordena seu plano. O Coach te motiva. Rafael cuida dos medicamentos. Dra. Clara interpreta seu DNA. Todos coordenados pelo Dr. Dohmann.",cor:T.teal},
-    {icon:"🧬",titulo:"Personalizado até o DNA",texto:"Seu plano usa dados genéticos, biométricos, estilo de vida e histórico clínico para criar recomendações únicas para o seu corpo.",cor:T.purple},
-    {icon:"📊",titulo:"Plano sempre atualizado",texto:"Atualização automática por gadgets, documentos enviados e check-in diário com a Ana. Qualquer novo dado recalibra seu plano em tempo real.",cor:T.green},
-    {icon:"⏱",titulo:"5 minutos para começar",texto:"Vamos montar seu perfil agora — 7 etapas simples. Quanto mais você preencher, mais personalizado será seu plano.",cor:T.red},
+    {icon:"🏥",titulo:"Saúde não é ausência de doença",texto:"O HDohmann existe para desenvolver sua saúde e produtividade — complementar ao seu médico atual.",cor:T.gold},
+    {icon:"👥",titulo:"Sua equipe de saúde dedicada",texto:"Ana coordena seu plano. O Coach te motiva. Rafael cuida dos medicamentos. Dra. Clara interpreta seu DNA.",cor:T.teal},
+    {icon:"🧬",titulo:"Personalizado até o DNA",texto:"Seu plano usa dados genéticos, biométricos e histórico clínico para criar recomendações únicas.",cor:T.purple},
+    {icon:"📊",titulo:"Plano sempre atualizado",texto:"Gadgets, documentos e check-in diário recalibram seu plano automaticamente em tempo real.",cor:T.green},
+    {icon:"⏱",titulo:"5 minutos para começar",texto:"Vamos montar seu perfil agora — 7 etapas simples para personalizar seu plano.",cor:T.red},
   ];
   const s=slides[slide];
   return(
@@ -227,7 +333,7 @@ function ScreenBoasVindas({onStart}){
         <Card style={{padding:"0",overflow:"hidden",marginBottom:24}}>
           <div style={{height:4,background:`linear-gradient(90deg,${s.cor},${s.cor}60)`}}/>
           <div style={{padding:"40px",textAlign:"center"}}>
-            <div style={{width:80,height:80,borderRadius:"50%",background:`${s.cor}15`,border:`2px solid ${s.cor}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 24px",boxShadow:T.shadowCard}}>{s.icon}</div>
+            <div style={{width:80,height:80,borderRadius:"50%",background:`${s.cor}15`,border:`2px solid ${s.cor}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,margin:"0 auto 24px"}}>{s.icon}</div>
             <div style={{fontFamily:T.fD,fontSize:26,color:T.ink,marginBottom:14,lineHeight:1.3}}>{s.titulo}</div>
             <div style={{fontSize:14,color:T.inkMid,lineHeight:1.9,maxWidth:420,margin:"0 auto"}}>{s.texto}</div>
           </div>
@@ -243,55 +349,55 @@ function ScreenBoasVindas({onStart}){
   );
 }
 
+// ─── ONBOARDING ───────────────────────────────────────────────────
 const OB_STEPS=["Identidade","Saúde Atual","Histórico Clínico","Estilo de Vida","Objetivos","Gadgets","Kit Genômico"];
 
 function ScreenOnboarding({user,onComplete}){
   const[step,setStep]=useState(0);
-  const[f,setF]=useState({nome:user.name,cargo:"",setor:"",idade:"",peso:"",altura:"",horasTrab:50,horasDescanso:2,condicoes:[],condicaoOutro:"",meds:[],medOutro:"",alergiaMed:"",energia:6,qualidadeVida:6,sintomas:[],sintomaOutro:"",histCardioFam:null,histCancerFam:null,histDiabetesFam:null,histDepressaoFam:null,cirurgias:"",hospitalizacoes:"",colesterolTotal:"",colesterolLDL:"",colesterolHDL:"",triglicerides:"",glicoseJejum:"",hemoglobina:"",pressaoSistolica:"",pressaoDiastolica:"",sono:7,qualSono:6,exercicios:[],exercicioOutro:"",freqTreino:3,alcool:"",estresse:6,meditacao:-1,dieta:"",tabaco:"",metas:[],disponibilidade:30,acompanhamento:"",horizonte:"",gadgets:[],gadgetOutro:"",querKit:null});
+  const[f,setF]=useState({nome:user.name,cargo:"",setor:"",idade:"",peso:"",altura:"",horas_trab:50,horas_descanso:2,condicoes:[],condicao_outro:"",meds:[],med_outro:"",alergia_med:"",energia:6,qualidade_vida:6,sintomas:[],sintoma_outro:"",hist_cardio_fam:null,hist_cancer_fam:null,hist_diabetes_fam:null,hist_depressao_fam:null,cirurgias:"",hospitalizacoes:"",colesterol_total:"",colesterol_ldl:"",colesterol_hdl:"",triglicerides:"",glicose_jejum:"",hemoglobina:"",pressao_sistolica:"",pressao_diastolica:"",sono:7,qual_sono:6,exercicios:[],exercicio_outro:"",freq_treino:3,alcool:"",estresse:6,meditacao:-1,dieta:"",tabaco:"",metas:[],disponibilidade:30,acompanhamento:"",horizonte:"",gadgets:[],gadget_outro:"",quer_kit:null});
   const set=(k,v)=>setF(p=>({...p,[k]:v}));
   const tog=(k,v)=>set(k,(f[k]||[]).includes(v)?(f[k]||[]).filter(x=>x!==v):[...(f[k]||[]),v]);
-  const ATIVIDADES=["Musculação","Corrida","Caminhada","Ciclismo","Natação","Pilates","Yoga","Tênis","Funcional","Crossfit","Outros"];
+
   const CONDICOES=["Hipertensão","Diabetes T2","Dislipidemia","Apneia do sono","Ansiedade","Depressão","Enxaqueca","Síndrome metabólica","Hipotireoidismo","Refluxo","Nenhuma","Outros"];
   const MEDS=["Antihipertensivo","Estatina","Ansiolítico","Antidepressivo","Metformina","Omeprazol","Levotiroxina","Vitaminas","Anticoagulante","Outros","Nenhum"];
   const SINTOMAS=["Cansaço frequente","Dificuldade de concentração","Dores de cabeça","Insônia","Irritabilidade","Falta de disposição","Dores musculares","Ganho de peso","Queda de cabelo","Nenhum","Outros"];
+  const ATIVIDADES=["Musculação","Corrida","Caminhada","Ciclismo","Natação","Pilates","Yoga","Tênis","Funcional","Crossfit","Outros"];
   const GADGETS_OB=["Samsung (Galaxy Watch/Ring)","Apple Watch","Oura Ring","Whoop","Garmin","Dexcom / Libre (CGM)","Withings Scale","Outros"];
-  const METAS_LIST=[{id:"energia",icon:"⚡",label:"Mais energia e disposição"},{id:"foco",icon:"🎯",label:"Foco e cognição"},{id:"peso",icon:"⚖️",label:"Composição corporal"},{id:"longevidade",icon:"∞",label:"Longevidade e prevenção"},{id:"estresse",icon:"🌿",label:"Gestão do estresse"},{id:"sono",icon:"◑",label:"Qualidade do sono"},{id:"performance",icon:"▲",label:"Performance atlética"},{id:"libido",icon:"♦",label:"Saúde hormonal"}];
+  const METAS_LIST=[{id:"energia",icon:"⚡",label:"Mais energia"},{id:"foco",icon:"🎯",label:"Foco e cognição"},{id:"peso",icon:"⚖️",label:"Composição corporal"},{id:"longevidade",icon:"∞",label:"Longevidade"},{id:"estresse",icon:"🌿",label:"Gestão do estresse"},{id:"sono",icon:"◑",label:"Qualidade do sono"},{id:"performance",icon:"▲",label:"Performance atlética"},{id:"libido",icon:"♦",label:"Saúde hormonal"}];
+
   const panels=[
     <div style={{display:"flex",flexDirection:"column",gap:18}}>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><TxtInput label="Nome completo" placeholder="Ricardo Costa" value={f.nome} onChange={v=>set("nome",v)}/><TxtInput label="Idade" placeholder="47" type="number" value={f.idade} onChange={v=>set("idade",v)} unit="anos"/></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><TxtInput label="Cargo" placeholder="CEO" value={f.cargo} onChange={v=>set("cargo",v)}/><TxtInput label="Setor" placeholder="Financeiro" value={f.setor} onChange={v=>set("setor",v)}/></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><TxtInput label="Peso" placeholder="82" type="number" value={f.peso} onChange={v=>set("peso",v)} unit="kg"/><TxtInput label="Altura" placeholder="178" type="number" value={f.altura} onChange={v=>set("altura",v)} unit="cm"/></div>
-      <SldInput label="Horas de trabalho por semana" value={f.horasTrab} onChange={v=>set("horasTrab",v)} min={20} max={90} unit="h/sem"/>
-      <SldInput label="Horas de lazer por dia" value={f.horasDescanso} onChange={v=>set("horasDescanso",v)} min={0} max={8} unit="h/dia" color={T.teal}/>
+      <SldInput label="Horas de trabalho por semana" value={f.horas_trab} onChange={v=>set("horas_trab",v)} min={20} max={90} unit="h/sem"/>
+      <SldInput label="Horas de lazer por dia" value={f.horas_descanso} onChange={v=>set("horas_descanso",v)} min={0} max={8} unit="h/dia" color={T.teal}/>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div><Lbl>Condições diagnosticadas</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{CONDICOES.map(c=><Chip key={c} label={c} color={T.teal} bg={T.tealBg} active={(f.condicoes||[]).includes(c)} onClick={()=>tog("condicoes",c)}/>)}</div>{(f.condicoes||[]).includes("Outros")&&<div style={{marginTop:12}}><TxtInput placeholder="Descreva..." value={f.condicaoOutro} onChange={v=>set("condicaoOutro",v)}/></div>}</div>
-      <div><Lbl>Sintomas frequentes (últimos 3 meses)</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{SINTOMAS.map(s=><Chip key={s} label={s} color={T.orange} bg={T.orangeBg} active={(f.sintomas||[]).includes(s)} onClick={()=>tog("sintomas",s)}/>)}</div>{(f.sintomas||[]).includes("Outros")&&<div style={{marginTop:12}}><TxtInput placeholder="Descreva..." value={f.sintomaOutro} onChange={v=>set("sintomaOutro",v)}/></div>}</div>
-      <div><Lbl>Medicamentos em uso</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{MEDS.map(m=><Chip key={m} label={m} color={T.teal} bg={T.tealBg} active={(f.meds||[]).includes(m)} onClick={()=>tog("meds",m)}/>)}</div>{(f.meds||[]).includes("Outros")&&<div style={{marginTop:12}}><TxtInput placeholder="Descreva..." value={f.medOutro} onChange={v=>set("medOutro",v)}/></div>}</div>
-      <TxtInput label="Alergia a medicamentos?" placeholder="Descreva ou deixe em branco" value={f.alergiaMed} onChange={v=>set("alergiaMed",v)}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><SldInput label="Nível de energia percebida" value={f.energia} onChange={v=>set("energia",v)} min={1} max={10} unit="/10" color={T.teal}/><SldInput label="Qualidade de vida geral" value={f.qualidadeVida} onChange={v=>set("qualidadeVida",v)} min={1} max={10} unit="/10" color={T.teal}/></div>
+      <div><Lbl>Condições diagnosticadas</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{CONDICOES.map(c=><Chip key={c} label={c} color={T.teal} bg={T.tealBg} active={(f.condicoes||[]).includes(c)} onClick={()=>tog("condicoes",c)}/>)}</div>{(f.condicoes||[]).includes("Outros")&&<div style={{marginTop:12}}><TxtInput placeholder="Descreva..." value={f.condicao_outro} onChange={v=>set("condicao_outro",v)}/></div>}</div>
+      <div><Lbl>Sintomas frequentes</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{SINTOMAS.map(s=><Chip key={s} label={s} color={T.orange} bg={T.orangeBg} active={(f.sintomas||[]).includes(s)} onClick={()=>tog("sintomas",s)}/>)}</div></div>
+      <div><Lbl>Medicamentos em uso</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{MEDS.map(m=><Chip key={m} label={m} color={T.teal} bg={T.tealBg} active={(f.meds||[]).includes(m)} onClick={()=>tog("meds",m)}/>)}</div></div>
+      <TxtInput label="Alergia a medicamentos?" placeholder="Descreva ou deixe em branco" value={f.alergia_med} onChange={v=>set("alergia_med",v)}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><SldInput label="Nível de energia" value={f.energia} onChange={v=>set("energia",v)} min={1} max={10} unit="/10" color={T.teal}/><SldInput label="Qualidade de vida" value={f.qualidade_vida} onChange={v=>set("qualidade_vida",v)} min={1} max={10} unit="/10" color={T.teal}/></div>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div><Lbl>Histórico familiar (parentes de 1º grau)</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{[{label:"Doenças cardiovasculares",key:"histCardioFam",cor:T.red},{label:"Câncer",key:"histCancerFam",cor:T.purple},{label:"Diabetes",key:"histDiabetesFam",cor:T.orange},{label:"Depressão / ansiedade",key:"histDepressaoFam",cor:T.blue}].map(item=>(<div key={item.key} style={{padding:"14px 16px",background:T.bgWarm,border:`1px solid ${T.border}`,borderRadius:8}}><div style={{fontSize:12,color:T.inkMid,marginBottom:10}}>{item.label}</div><div style={{display:"flex",gap:8}}>{["Sim","Não","Não sei"].map(opt=><Chip key={opt} label={opt} active={f[item.key]===opt} color={item.cor} onClick={()=>set(item.key,opt)}/>)}</div></div>))}</div></div>
+      <div><Lbl>Histórico familiar</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{[{label:"Doenças cardiovasculares",key:"hist_cardio_fam",cor:T.red},{label:"Câncer",key:"hist_cancer_fam",cor:T.purple},{label:"Diabetes",key:"hist_diabetes_fam",cor:T.orange},{label:"Depressão / ansiedade",key:"hist_depressao_fam",cor:T.blue}].map(item=>(<div key={item.key} style={{padding:"14px 16px",background:T.bgWarm,border:`1px solid ${T.border}`,borderRadius:8}}><div style={{fontSize:12,color:T.inkMid,marginBottom:10}}>{item.label}</div><div style={{display:"flex",gap:8}}>{["Sim","Não","Não sei"].map(opt=><Chip key={opt} label={opt} active={f[item.key]===opt} color={item.cor} onClick={()=>set(item.key,opt)}/>)}</div></div>))}</div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><TxtInput label="Cirurgias anteriores" placeholder="Descreva ou 'Nenhuma'" value={f.cirurgias} onChange={v=>set("cirurgias",v)}/><TxtInput label="Internações anteriores" placeholder="Descreva ou 'Nenhuma'" value={f.hospitalizacoes} onChange={v=>set("hospitalizacoes",v)}/></div>
-      <div><Lbl>Exames recentes (se disponível)</Lbl><Card style={{padding:"18px",background:T.bgWarm}}><div style={{fontSize:12,color:T.inkMid,marginBottom:16,lineHeight:1.7}}>Preencha os valores que lembrar — não obrigatório.</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><TxtInput label="Colesterol Total" placeholder="185" type="number" value={f.colesterolTotal} onChange={v=>set("colesterolTotal",v)} unit="mg/dL"/><TxtInput label="LDL" placeholder="110" type="number" value={f.colesterolLDL} onChange={v=>set("colesterolLDL",v)} unit="mg/dL"/><TxtInput label="HDL" placeholder="55" type="number" value={f.colesterolHDL} onChange={v=>set("colesterolHDL",v)} unit="mg/dL"/><TxtInput label="Triglicerídeos" placeholder="120" type="number" value={f.triglicerides} onChange={v=>set("triglicerides",v)} unit="mg/dL"/><TxtInput label="Glicose jejum" placeholder="92" type="number" value={f.glicoseJejum} onChange={v=>set("glicoseJejum",v)} unit="mg/dL"/><TxtInput label="HbA1c" placeholder="5.4" type="number" value={f.hemoglobina} onChange={v=>set("hemoglobina",v)} unit="%"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}><TxtInput label="Pressão Sistólica" placeholder="120" type="number" value={f.pressaoSistolica} onChange={v=>set("pressaoSistolica",v)} unit="mmHg"/><TxtInput label="Pressão Diastólica" placeholder="80" type="number" value={f.pressaoDiastolica} onChange={v=>set("pressaoDiastolica",v)} unit="mmHg"/></div></Card></div>
+      <div><Lbl>Exames recentes</Lbl><Card style={{padding:"16px",background:T.bgWarm}}><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}><TxtInput label="Colesterol Total" placeholder="185" type="number" value={f.colesterol_total} onChange={v=>set("colesterol_total",v)} unit="mg/dL"/><TxtInput label="LDL" placeholder="110" type="number" value={f.colesterol_ldl} onChange={v=>set("colesterol_ldl",v)} unit="mg/dL"/><TxtInput label="HDL" placeholder="55" type="number" value={f.colesterol_hdl} onChange={v=>set("colesterol_hdl",v)} unit="mg/dL"/><TxtInput label="Triglicerídeos" placeholder="120" type="number" value={f.triglicerides} onChange={v=>set("triglicerides",v)} unit="mg/dL"/><TxtInput label="Glicose jejum" placeholder="92" type="number" value={f.glicose_jejum} onChange={v=>set("glicose_jejum",v)} unit="mg/dL"/><TxtInput label="HbA1c" placeholder="5.4" type="number" value={f.hemoglobina} onChange={v=>set("hemoglobina",v)} unit="%"/></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}><TxtInput label="Pressão Sistólica" placeholder="120" type="number" value={f.pressao_sistolica} onChange={v=>set("pressao_sistolica",v)} unit="mmHg"/><TxtInput label="Pressão Diastólica" placeholder="80" type="number" value={f.pressao_diastolica} onChange={v=>set("pressao_diastolica",v)} unit="mmHg"/></div></Card></div>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><SldInput label="Sono por noite" value={f.sono} onChange={v=>set("sono",v)} min={4} max={10} unit="h" color={T.purple}/><SldInput label="Qualidade do sono" value={f.qualSono} onChange={v=>set("qualSono",v)} min={1} max={10} unit="/10" color={T.purple}/></div>
-      <div><Lbl>Atividades físicas praticadas</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{ATIVIDADES.map(e=><Chip key={e} label={e} color={T.teal} bg={T.tealBg} active={(f.exercicios||[]).includes(e)} onClick={()=>tog("exercicios",e)}/>)}</div>{(f.exercicios||[]).includes("Outros")&&<div style={{marginTop:12}}><TxtInput placeholder="Descreva..." value={f.exercicioOutro} onChange={v=>set("exercicioOutro",v)}/></div>}</div>
-      <SldInput label="Frequência de treino" value={f.freqTreino} onChange={v=>set("freqTreino",v)} min={0} max={7} unit="x/sem" color={T.teal}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}><SldInput label="Sono por noite" value={f.sono} onChange={v=>set("sono",v)} min={4} max={10} unit="h" color={T.purple}/><SldInput label="Qualidade do sono" value={f.qual_sono} onChange={v=>set("qual_sono",v)} min={1} max={10} unit="/10" color={T.purple}/></div>
+      <div><Lbl>Atividades físicas</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{ATIVIDADES.map(e=><Chip key={e} label={e} color={T.teal} bg={T.tealBg} active={(f.exercicios||[]).includes(e)} onClick={()=>tog("exercicios",e)}/>)}</div></div>
+      <SldInput label="Frequência de treino" value={f.freq_treino} onChange={v=>set("freq_treino",v)} min={0} max={7} unit="x/sem" color={T.teal}/>
       <SldInput label="Nível de estresse" value={f.estresse} onChange={v=>set("estresse",v)} min={1} max={10} unit="/10" color={T.red}/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div><Lbl>Álcool</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Nunca","Ocasional","Semanal","Diário"].map(a=><Chip key={a} label={a} active={f.alcool===a} onClick={()=>set("alcool",a)}/>)}</div></div>
-        <div><Lbl>Tabaco</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Nunca fumei","Ex-fumante","Fumante ocasional","Fumante regular"].map(t=><Chip key={t} label={t} active={f.tabaco===t} onClick={()=>set("tabaco",t)}/>)}</div></div>
+        <div><Lbl>Padrão alimentar</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Onívoro","Mediterrâneo","Low-carb","Vegetariano","Vegano"].map(d=><Chip key={d} label={d} active={f.dieta===d} onClick={()=>set("dieta",d)}/>)}</div></div>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-        <div><Lbl>Padrão alimentar</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Onívoro","Mediterrâneo","Low-carb","Cetogênico","Vegetariano","Vegano","Sem padrão"].map(d=><Chip key={d} label={d} active={f.dieta===d} onClick={()=>set("dieta",d)}/>)}</div></div>
-        <div><Lbl>Meditação</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Não pratico","Às vezes","Regularmente"].map((o,i)=><Chip key={o} label={o} active={f.meditacao===i} onClick={()=>set("meditacao",i)}/>)}</div></div>
-      </div>
+      <div><Lbl>Meditação</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Não pratico","Às vezes","Regularmente"].map((o,i)=><Chip key={o} label={o} active={f.meditacao===i} onClick={()=>set("meditacao",i)}/>)}</div></div>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:20}}>
-      <div><Lbl>Objetivos principais (até 3)</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:4}}>{METAS_LIST.map(m=>{const active=(f.metas||[]).includes(m.id),limit=(f.metas||[]).length>=3&&!active;return(<button key={m.id} onClick={()=>!limit&&tog("metas",m.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:active?T.goldFaint:T.bgWarm,border:`1.5px solid ${active?T.gold:T.border}`,borderRadius:10,cursor:limit?"not-allowed":"pointer",opacity:limit?0.4:1,transition:"all 0.18s",fontFamily:T.fB,textAlign:"left",boxShadow:T.shadowCard}}><span style={{fontSize:20}}>{m.icon}</span><span style={{fontSize:12,color:active?T.gold:T.inkMid,lineHeight:1.3}}>{m.label}</span>{active&&<span style={{marginLeft:"auto",color:T.gold,fontSize:14}}>✓</span>}</button>);})}</div></div>
+      <div><Lbl>Objetivos principais (até 3)</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{METAS_LIST.map(m=>{const active=(f.metas||[]).includes(m.id),limit=(f.metas||[]).length>=3&&!active;return(<button key={m.id} onClick={()=>!limit&&tog("metas",m.id)} style={{display:"flex",alignItems:"center",gap:12,padding:"14px 16px",background:active?T.goldFaint:T.bgWarm,border:`1.5px solid ${active?T.gold:T.border}`,borderRadius:10,cursor:limit?"not-allowed":"pointer",opacity:limit?0.4:1,transition:"all 0.18s",fontFamily:T.fB,textAlign:"left",boxShadow:T.shadowCard}}><span style={{fontSize:20}}>{m.icon}</span><span style={{fontSize:12,color:active?T.gold:T.inkMid}}>{m.label}</span>{active&&<span style={{marginLeft:"auto",color:T.gold}}>✓</span>}</button>);})}</div></div>
       <SldInput label="Disponibilidade diária para saúde" value={f.disponibilidade} onChange={v=>set("disponibilidade",v)} min={10} max={120} unit=" min/dia"/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div><Lbl>Acompanhamento preferido</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:8}}>{["Check-ins diários","Relatórios semanais","Alertas sob demanda","Coaching ativo"].map(c=><Chip key={c} label={c} color={T.teal} bg={T.tealBg} active={f.acompanhamento===c} onClick={()=>set("acompanhamento",c)}/>)}</div></div>
@@ -299,29 +405,26 @@ function ScreenOnboarding({user,onComplete}){
       </div>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:18}}>
-      <div><Lbl>Gadgets e dispositivos</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{GADGETS_OB.map(g=>{const active=(f.gadgets||[]).includes(g);return(<button key={g} onClick={()=>tog("gadgets",g)} style={{display:"flex",alignItems:"center",gap:10,padding:"13px 16px",background:active?T.tealBg:T.bgWarm,border:`1.5px solid ${active?T.teal:T.border}`,borderRadius:10,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,boxShadow:T.shadowCard}}><span style={{fontSize:13,color:active?T.teal:T.ink,fontWeight:500}}>{g}</span>{active&&<span style={{marginLeft:"auto",color:T.teal,fontSize:14}}>✓</span>}</button>);})}</div>{(f.gadgets||[]).includes("Outros")&&<div style={{marginTop:12}}><TxtInput placeholder="Descreva..." value={f.gadgetOutro} onChange={v=>set("gadgetOutro",v)}/></div>}</div>
+      <div><Lbl>Gadgets e dispositivos</Lbl><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{GADGETS_OB.map(g=>{const active=(f.gadgets||[]).includes(g);return(<button key={g} onClick={()=>tog("gadgets",g)} style={{display:"flex",alignItems:"center",gap:10,padding:"13px 16px",background:active?T.tealBg:T.bgWarm,border:`1.5px solid ${active?T.teal:T.border}`,borderRadius:10,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,boxShadow:T.shadowCard}}><span style={{fontSize:12,color:active?T.teal:T.ink,fontWeight:500}}>{g}</span>{active&&<span style={{marginLeft:"auto",color:T.teal}}>✓</span>}</button>);})}</div></div>
       <Card style={{padding:"20px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`}}>
         <Lbl color={T.gold}>Como seu plano é atualizado automaticamente</Lbl>
-        {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real. O plano se recalibra diariamente."},{icon:"📄",t:"Documentos",d:"Novos exames, receitas ou laudos enviados são lidos e incorporados imediatamente."},{icon:"✅",t:"Check-in diário com Ana",d:"Todo dia, Ana faz um check-in rápido de 2 minutos que refina seu plano."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:12}}><span style={{fontSize:20,flexShrink:0}}>{item.icon}</span><div><div style={{fontSize:12,color:T.ink,fontWeight:600,marginBottom:3}}>{item.t}</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{item.d}</div></div></div>))}
+        {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real."},{icon:"📄",t:"Documentos",d:"Novos exames ou laudos são incorporados imediatamente."},{icon:"✅",t:"Check-in diário",d:"Ana faz um check-in rápido todo dia."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:10}}><span style={{fontSize:20,flexShrink:0}}>{item.icon}</span><div><div style={{fontSize:12,color:T.ink,fontWeight:600}}>{item.t}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.7}}>{item.d}</div></div></div>))}
       </Card>
     </div>,
     <div style={{display:"flex",flexDirection:"column",gap:24}}>
-      <div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🧬</div><div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Análise Genômica HDohmann</div><div style={{fontSize:13,color:T.inkMid,lineHeight:1.9,maxWidth:480,margin:"0 auto"}}>Mais de 30 variantes em 6 categorias clínicas integradas ao seu plano de cuidado.</div></div>
+      <div style={{textAlign:"center"}}><div style={{fontSize:48,marginBottom:16}}>🧬</div><div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:8}}>Análise Genômica HDohmann</div><div style={{fontSize:13,color:T.inkMid,lineHeight:1.9,maxWidth:480,margin:"0 auto"}}>Mais de 30 variantes em 6 categorias clínicas integradas ao seu plano.</div></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>{[{icon:"📦",t:"Kit em casa",d:"Correios em 3–5 dias úteis"},{icon:"🧪",t:"Coleta simples",d:"Swab oral — 2 minutos"},{icon:"📊",t:"Laudo em 30 dias",d:"Analisado pela Dra. Clara"}].map((fi,i)=>(<Card key={i} style={{padding:"18px",textAlign:"center"}}><div style={{fontSize:28,marginBottom:10}}>{fi.icon}</div><div style={{fontSize:13,color:T.ink,fontWeight:600,marginBottom:6}}>{fi.t}</div><div style={{fontSize:11,color:T.inkLight,lineHeight:1.6}}>{fi.d}</div></Card>))}</div>
-      <Card style={{padding:"22px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`}}>
-        <div style={{fontFamily:T.fD,fontSize:18,color:T.gold,marginBottom:14}}>Passos da coleta</div>
-        {[{n:"01",t:"Receba o kit",d:"Swab estéril, tubo e envelope pré-pago"},{n:"02",t:"Prepare-se",d:"Não coma/beba 30 min antes. Lave as mãos."},{n:"03",t:"Colete",d:"Esfregue firmemente em cada bochecha por 30s"},{n:"04",t:"Embale",d:"Insira no tubo, feche e agite 5 segundos"},{n:"05",t:"Envie",d:"Qualquer agência dos Correios — frete pago"},{n:"06",t:"Receba o laudo",d:"Em 21–30 dias, faça upload para a Dra. Clara"}].map((s,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:8}}><span style={{fontSize:9,color:T.gold,fontWeight:700,width:20,flexShrink:0,marginTop:2}}>{s.n}</span><div><span style={{fontSize:12,color:T.ink,fontWeight:600}}>{s.t} — </span><span style={{fontSize:12,color:T.inkMid}}>{s.d}</span></div></div>))}
-      </Card>
       <div><Lbl>Deseja solicitar o Kit Genômico?</Lbl><div style={{display:"flex",gap:12}}>
-        <button onClick={()=>set("querKit",true)} style={{flex:1,padding:"16px",background:f.querKit===true?T.goldFaint:"transparent",border:`1.5px solid ${f.querKit===true?T.gold:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:f.querKit===true?T.gold:T.inkMid,transition:"all 0.18s"}}>✓ Sim, quero solicitar o kit</button>
-        <button onClick={()=>set("querKit",false)} style={{flex:1,padding:"16px",background:f.querKit===false?T.surfaceMid:"transparent",border:`1.5px solid ${f.querKit===false?T.borderMid:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:T.inkMid,transition:"all 0.18s"}}>Não por enquanto</button>
-      </div>{f.querKit===true&&<div style={{marginTop:12,padding:"12px 16px",background:T.tealBg,borderRadius:8,border:`1px solid ${T.teal}30`}}><div style={{fontSize:12,color:T.teal,lineHeight:1.7}}>✓ Ótimo! A equipe HDohmann entrará em contato para confirmar o endereço de entrega.</div></div>}</div>
+        <button onClick={()=>set("quer_kit",true)} style={{flex:1,padding:"16px",background:f.quer_kit===true?T.goldFaint:"transparent",border:`1.5px solid ${f.quer_kit===true?T.gold:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:f.quer_kit===true?T.gold:T.inkMid,transition:"all 0.18s"}}>✓ Sim, quero o kit</button>
+        <button onClick={()=>set("quer_kit",false)} style={{flex:1,padding:"16px",background:f.quer_kit===false?T.surfaceMid:"transparent",border:`1.5px solid ${f.quer_kit===false?T.borderMid:T.border}`,borderRadius:10,cursor:"pointer",fontFamily:T.fB,fontSize:12,color:T.inkMid,transition:"all 0.18s"}}>Não por enquanto</button>
+      </div>{f.quer_kit===true&&<div style={{marginTop:12,padding:"12px 16px",background:T.tealBg,borderRadius:8}}><div style={{fontSize:12,color:T.teal}}>✓ A equipe entrará em contato para confirmar o endereço.</div></div>}</div>
     </div>,
   ];
+
   const pct=Math.round((step/(OB_STEPS.length-1))*100);
   return(
     <div style={{minHeight:"100vh",display:"flex",background:T.bg,fontFamily:T.fB,color:T.ink}}>
-      <div style={{width:220,flexShrink:0,borderRight:`1px solid ${T.border}`,padding:"32px 24px",display:"flex",flexDirection:"column",background:T.surface,boxShadow:"2px 0 12px rgba(60,50,30,0.04)"}}>
+      <div style={{width:220,flexShrink:0,borderRight:`1px solid ${T.border}`,padding:"32px 24px",display:"flex",flexDirection:"column",background:T.surface}}>
         <div style={{display:"flex",alignItems:"baseline",gap:6,marginBottom:44}}><span style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:24,color:T.gold}}>Dohmann</span></div>
         <div style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
           {OB_STEPS.map((s,i)=>{const done=i<step,active=i===step;return(<div key={i} style={{display:"flex",gap:14,alignItems:"flex-start",padding:"9px 0",cursor:done?"pointer":"default"}} onClick={()=>done&&setStep(i)}><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:24,height:24,borderRadius:"50%",border:`2px solid ${done?T.green:active?T.gold:T.border}`,background:done?T.green:active?T.goldFaint:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:done?"#FFF":active?T.gold:T.inkFaint,fontWeight:700,transition:"all 0.3s"}}>{done?"✓":i+1}</div>{i<OB_STEPS.length-1&&<div style={{width:1.5,height:28,background:done?T.green:T.border,marginTop:3}}/>}</div><span style={{fontSize:11,color:active?T.gold:done?T.ink:T.inkFaint,paddingTop:3,fontWeight:active?600:400}}>{s}</span></div>);})}
@@ -342,179 +445,165 @@ function ScreenOnboarding({user,onComplete}){
   );
 }
 
-function ModuloDashboard({form,scores,setModulo,checkinHoje}){
-  const nome=form?.nome||"Executivo";
+// ─── APP PRINCIPAL ────────────────────────────────────────────────
+function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
+  const[modulo,setModulo]=useState("dashboard");
+  const[checkinHoje,setCheckinHoje]=useState(null);
+  const[planLog,setPlanLog]=useState([]);
+  const[mensagensNaoLidas,setMensagensNaoLidas]=useState(0);
+  const scores=calcScores(form,checkinHoje);
+  const nome=form?.nome||user.name||"Executivo";
+  const initials=nome.split(" ").slice(0,2).map(n=>n[0]).join("").toUpperCase();
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    const hoje=new Date().toISOString().slice(0,10);
+    carregarCheckinHoje(pacienteId).then(ci=>{if(ci&&ci.data===hoje)setCheckinHoje(ci);});
+    carregarPlanLog(pacienteId).then(log=>setPlanLog(log));
+    // Contar mensagens não lidas
+    supabase.from("mensagens").select("id",{count:"exact"}).eq("paciente_id",pacienteId).eq("lida",false).eq("remetente","ana").then(({count})=>setMensagensNaoLidas(count||0));
+  },[pacienteId]);
+
+  const onPlanUpdate=useCallback(async(evento)=>{
+    if(pacienteId)await salvarPlanLog(pacienteId,evento);
+    setPlanLog(prev=>[evento,...prev].slice(0,20));
+  },[pacienteId]);
+
+  const onCheckinSalvo=useCallback(async(dados)=>{
+    setCheckinHoje(dados);
+    if(pacienteId){
+      await salvarCheckinDB(pacienteId,dados);
+      await onPlanUpdate({icon:"✅",cor:T.teal,titulo:"Check-in diário realizado",descricao:`Energia ${dados.energia}/10 · Sono ${dados.sono}/10 · Estresse ${dados.estresse}/10. Scores recalibrados.`,data:new Date().toLocaleDateString("pt-BR")});
+    }
+  },[pacienteId,onPlanUpdate]);
+
+  const checkinPendente=!checkinHoje;
   const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
+
+  // Sistemas de prompt para cada membro
+  const buildPrompt=(membro)=>{
+    const base=`Perfil: ${nome}, ${form?.cargo||"Executivo"}, ${form?.idade||"—"} anos. Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Sono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10. Dieta: ${form?.dieta||"—"}. Score: ${scores.total}/100.`;
+    if(membro==="coach")return `Você é o Coach de Saúde da equipe HDohmann. Tom: preciso, empático e motivador. Responda APENAS sobre os 6 eixos MEV. ${base}`;
+    if(membro==="farmaceutico")return `Você é Rafael, farmacêutico clínico da equipe HDohmann. Analise medicamentos e interações. Mencione que alertará o Dr. Dohmann em caso de risco. Nunca altere prescrições. ${base}`;
+    if(membro==="geneticista")return `Você é a Dra. Clara, geneticista da equipe HDohmann. Interprete laudos com precisão. Conecte achados ao plano. Para riscos elevados, informe que o Dr. Dohmann será notificado. ${base}`;
+    if(membro==="suporte")return `Você é a Central de Atendimento HDohmann. Responda dúvidas sobre o app e o programa. Seja claro e amigável. Usuário: ${nome}.`;
+    // Ana — acesso total
+    return `Você é Ana, enfermeira coordenadora da equipe HDohmann do Dr. Dohmann. Ponto central de contato — acesso a TODOS os dados.\n\nPERFIL: ${nome}, ${form?.cargo||"—"}, ${form?.idade||"—"} anos.\nCondições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}.\nMedicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}.\nSono: ${form?.sono||7}h qualidade ${form?.qual_sono||5}/10. Treino: ${form?.freq_treino||0}x/sem. Estresse: ${form?.estresse||5}/10.\nScores: ${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}`).join(" | ")}. Vitalidade: ${scores.total}/100.\nCheck-in hoje: ${checkinHoje?`Energia ${checkinHoje.energia}/10, Sono ${checkinHoje.sono}/10, Estresse ${checkinHoje.estresse}/10`:"Não realizado"}.\n\nTom: acolhedor, preciso e humano. Pode falar sobre qualquer assunto de saúde. Histórico de conversas está persistido — você tem memória das sessões anteriores.`;
+  };
+
   return(
-    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
-      <div style={{maxWidth:980,margin:"0 auto",display:"flex",flexDirection:"column",gap:20,animation:"fadeUp 0.4s ease"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div><div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4,lineHeight:1.2}}>Bom dia, {nome.split(" ")[0]}.</div><div style={{fontSize:13,color:T.inkMid}}>Sua equipe HDohmann está ativa e acompanhando seu plano.</div></div>
-          <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em"}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}).toUpperCase()}</div>
+    <div style={{display:"flex",height:"100vh",background:T.bg,fontFamily:T.fB,color:T.ink,overflow:"hidden"}}>
+      {/* Sidebar */}
+      <div style={{width:222,flexShrink:0,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden",boxShadow:"2px 0 12px rgba(60,50,30,0.04)"}}>
+        <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",alignItems:"baseline",gap:6}}><span style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:24,color:T.gold}}>Dohmann</span></div><div style={{fontSize:8,letterSpacing:"0.22em",color:T.inkFaint,marginTop:2}}>SAÚDE EXECUTIVA</div></div>
+        <div style={{padding:"12px 16px 10px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"center"}}>
+          <div style={{width:34,height:34,borderRadius:"50%",background:T.goldFaint,border:`1.5px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.gold,fontWeight:700,flexShrink:0}}>{initials}</div>
+          <div style={{minWidth:0}}><div style={{fontSize:12,color:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:500}}>{nome.split(" ")[0]}</div><div style={{fontSize:9,color:T.inkFaint}}>{form?.cargo||"Executivo"}</div></div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:16}}>
-          <Card style={{padding:"24px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
-            <Lbl>Score de Vitalidade</Lbl>
-            <RadialScore value={scores.total} size={100}/>
-            <div style={{fontSize:11,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,letterSpacing:"0.12em",fontWeight:700}}>{scores.total>=75?"ALTO DESEMPENHO":scores.total>=50?"EM PROGRESSO":"ATENÇÃO"}</div>
-          </Card>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            {Object.entries(scores.eixos).map(([n,sc],i)=>(<Card key={i} style={{padding:"16px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:11,color:T.inkMid}}>{n}</span><span style={{fontSize:20,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700}}>{sc}</span></div><div style={{height:4,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n],transition:"width 1.2s ease"}}/></div><div style={{marginTop:6,fontSize:10,color:T.inkFaint}}>{sc>=80?"Excelente":sc>=65?"Bom":sc>=50?"Regular":"Atenção"}</div></Card>))}
-          </div>
+        <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
+          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"6px 10px 8px"}}>NAVEGAÇÃO</div>
+          {MODULOS.map(m=>{
+            const eq=m.membro?EQUIPE.find(e=>e.id===m.membro):null;
+            const active=modulo===m.id;
+            const showDot=m.id==="ana"&&checkinPendente;
+            const showMsg=m.id==="mensagens"&&mensagensNaoLidas>0;
+            return(<button key={m.id} onClick={()=>{setModulo(m.id);if(m.id==="mensagens"){setMensagensNaoLidas(0);if(pacienteId)marcarMensagensLidas(pacienteId);}}} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,background:active?T.goldFaint:"transparent",border:`1px solid ${active?T.goldBorder:"transparent"}`,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,textAlign:"left",marginBottom:2,boxShadow:active?T.shadowCard:"none"}} onMouseOver={e=>{if(!active)e.currentTarget.style.background=T.surfaceMid;}} onMouseOut={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
+              <span style={{fontSize:15,flexShrink:0}}>{m.icon}</span>
+              <span style={{fontSize:12,color:active?T.gold:T.inkMid,fontWeight:active?600:400}}>{m.label}</span>
+              {showDot&&<span style={{marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite",flexShrink:0}}/>}
+              {showMsg&&<span style={{marginLeft:"auto",fontSize:9,padding:"2px 6px",borderRadius:10,background:T.teal,color:"#FFF",fontWeight:700}}>{mensagensNaoLidas}</span>}
+              {!showDot&&!showMsg&&eq&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:eq.cor,boxShadow:`0 0 6px ${eq.cor}60`}}/>}
+            </button>);
+          })}
+          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"14px 10px 8px"}}>SUA EQUIPE</div>
+          {EQUIPE.map(e=>(<div key={e.id} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 12px",borderRadius:8}}><div style={{width:30,height:30,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{e.icon}</div><div style={{minWidth:0}}><div style={{fontSize:11,color:T.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.nome}</div><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.08em"}}>{e.titulo}</div></div><div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`,flexShrink:0}}/></div>))}
         </div>
-        {!checkinHoje&&(
-          <Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-            <div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>A Ana está esperando seu check-in de hoje — 2 minutos para atualizar seu plano.</div></div>
-            <Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn>
-          </Card>
-        )}
-        {checkinHoje&&(
-          <Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div>
-            <div><div style={{fontSize:13,color:T.ink,fontWeight:500}}>Check-in concluído hoje</div><div style={{fontSize:11,color:T.inkMid}}>Energia {checkinHoje.energia}/10 · Sono {checkinHoje.sono}/10 · Estresse {checkinHoje.estresse}/10 · Plano atualizado</div></div>
-          </Card>
-        )}
-        <Card style={{padding:"20px 24px",background:T.blueBg,border:`1px solid ${T.blue}30`}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}><div style={{fontFamily:T.fD,fontSize:18,color:T.ink}}>Como seu plano é atualizado</div><span style={{fontSize:9,color:T.blue,background:T.surface,padding:"3px 10px",borderRadius:20,border:`1px solid ${T.blue}30`,letterSpacing:"0.12em",fontWeight:700}}>AUTOMÁTICO</span></div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:16}}>
-            {[{icon:"⌚",t:"Gadgets",d:"Apple Watch, Oura, Garmin enviam dados em tempo real."},{icon:"📄",t:"Documentos",d:"Novos exames ou laudos — a equipe incorpora imediatamente."},{icon:"✅",t:"Check-in diário",d:"Ana faz um check-in rápido todo dia para refinar seu plano."}].map((item,i)=>(<div key={i} style={{display:"flex",gap:10,alignItems:"flex-start"}}><div style={{width:36,height:36,borderRadius:8,background:T.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,boxShadow:T.shadowCard}}>{item.icon}</div><div><div style={{fontSize:12,color:T.ink,fontWeight:600,marginBottom:4}}>{item.t}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.6}}>{item.d}</div></div></div>))}
-          </div>
-        </Card>
-        <div><Lbl>Sua equipe de cuidado</Lbl><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>{EQUIPE.map(e=>(<Card key={e.id} hover onClick={()=>setModulo(e.id==="coach"?"coach":e.id==="farmaceutico"?"farmaceutico":e.id==="geneticista"?"geneticista":"ana")} style={{padding:"18px"}}><div style={{width:44,height:44,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,marginBottom:12,boxShadow:T.shadowCard}}>{e.icon}</div><div style={{fontSize:13,color:e.cor,marginBottom:3,fontWeight:600}}>{e.nome}</div><div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>{e.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.6}}>{e.descricao}</div><div style={{display:"flex",alignItems:"center",gap:5,marginTop:12}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`}}/><span style={{fontSize:9,color:T.green,letterSpacing:"0.12em"}}>ONLINE</span></div></Card>))}</div></div>
-        <Card style={{padding:"20px 24px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div><Lbl color={T.gold}>Prioridade da semana</Lbl><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Foco em <span style={{color:AXIS_COLORS[lowAxis[0]]}}>{lowAxis[0]}</span> — score: {lowAxis[1]}/100</div></div>
-          <Btn onClick={()=>setModulo("coach")} variant="gold">FALAR COM O COACH →</Btn>
-        </Card>
+        <div style={{padding:"14px 16px",borderTop:`1px solid ${T.border}`}}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:10,color:T.inkFaint}}>VITALIDADE</span><span style={{fontSize:13,color:T.gold,fontFamily:T.fD,fontWeight:700}}>{scores.total}/100</span></div>
+          <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${scores.total}%`,background:`linear-gradient(90deg,${T.gold},${T.teal})`}}/></div>
+          <button onClick={onLogout} style={{marginTop:12,width:"100%",padding:"7px",background:"transparent",border:`1px solid ${T.border}`,borderRadius:6,color:T.inkFaint,fontFamily:T.fB,fontSize:9,letterSpacing:"0.12em",cursor:"pointer"}}>SAIR</button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em"}}>HDohmann Health</span><span style={{color:T.border}}>›</span><span style={{fontSize:11,color:T.inkMid,letterSpacing:"0.12em",fontWeight:500}}>{MODULOS.find(m=>m.id===modulo)?.label}</span></div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
+        </div>
+
+        {modulo==="dashboard"&&<ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje} planLog={planLog} onPlanUpdate={onPlanUpdate}/>}
+        {modulo==="plano"&&<ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje}/>}
+        {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} systemPrompt={buildPrompt("enfermeira")}/>}
+        {modulo==="coach"&&<ModuloChat membro="coach" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("coach")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Score: ${scores.total}/100. Foco em ${lowAxis[0]} (${lowAxis[1]}/100). Como posso ajudar?`} sugestoes={[`Como melhorar meu ${lowAxis[0].toLowerCase()}?`,"Qual minha prioridade esta semana?","Como o estresse afeta meu sono?"]}/>}
+        {modulo==="farmaceutico"&&<ModuloChat membro="farmaceutico" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("farmaceutico")} inicialMsg={`Olá! Sou Rafael. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Em que posso ajudar?`} sugestoes={["Verificar interações","Como tomar minha medicação?","Posso tomar vitaminas junto?"]}/>}
+        {modulo==="geneticista"&&<ModuloGeneticista form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("geneticista")}/>}
+        {modulo==="documentos"&&<ModuloDocumentos apiKey={apiKey} pacienteId={pacienteId} onPlanUpdate={onPlanUpdate}/>}
+        {modulo==="mensagens"&&<ModuloMensagens pacienteId={pacienteId} nome={nome}/>}
+        {modulo==="integracoes"&&<ModuloIntegracoes/>}
       </div>
     </div>
   );
 }
 
-function ModuloPlano({form,scores,setModulo,planLog,checkinHoje}){
-  const[todoCheck,setTodoCheck]=useState({});
-  const eq=EQUIPE.find(e=>e.id==="enfermeira");
-  const todos=[
-    ...((form?.meds||[]).filter(m=>m!=="Nenhum").map((m,i)=>({id:`med-${i}`,tipo:"medicamento",icon:"💊",text:`Tomar ${m}`,hora:"Conforme prescrição",cor:T.green,corBg:T.greenBg}))),
-    scores.eixos["Sono"]<75&&{id:"sono-1",tipo:"hábito",icon:"🌙",text:"Desligar telas até 22h",hora:"22:00",cor:T.purple,corBg:T.purpleBg},
-    scores.eixos["Atividade"]<75&&{id:"atv-1",tipo:"hábito",icon:"🏃",text:`Treino — ${(form?.exercicios||["atividade física"])[0]||"atividade física"}`,hora:"Manhã",cor:T.teal,corBg:T.tealBg},
-    scores.eixos["Estresse"]<75&&{id:"est-1",tipo:"hábito",icon:"🌿",text:"Respiração 4-7-8 pós-reunião",hora:"Após reuniões",cor:T.red,corBg:T.redBg},
-    scores.eixos["Nutrição"]<75&&{id:"nut-1",tipo:"hábito",icon:"🥗",text:"Café da manhã proteico",hora:"Manhã",cor:T.gold,corBg:T.goldFaint},
-    {id:"agua-1",tipo:"hábito",icon:"💧",text:"2L de água ao longo do dia",hora:"Durante o dia",cor:T.blue,corBg:T.blueBg},
-    {id:"pass-1",tipo:"hábito",icon:"👣",text:"10.000 passos",hora:"Durante o dia",cor:T.teal,corBg:T.tealBg},
-  ].filter(Boolean);
-  const todosDone=todos.filter(t=>todoCheck[t.id]).length;
-  const plano=[
-    scores.eixos["Sono"]<70&&{tag:"Sono",color:T.purple,bg:T.purpleBg,action:`Sono de ${form?.sono||7}h — alvo 7–9h. Rotina noturna às 22h.`},
-    scores.eixos["Atividade"]<70&&{tag:"Atividade",color:T.teal,bg:T.tealBg,action:`${form?.freqTreino||0}x/sem — alvo 4x. Adicionar zona 2 cardio.`},
-    scores.eixos["Estresse"]<70&&{tag:"Estresse",color:T.red,bg:T.redBg,action:`Estresse ${form?.estresse||5}/10 — respiração 4-7-8 pós-reuniões.`},
-    scores.eixos["Nutrição"]<70&&{tag:"Nutrição",color:T.gold,bg:T.goldFaint,action:`Dieta ${form?.dieta||"não definida"} — proteína no café da manhã.`},
-  ].filter(Boolean);
-  if(!plano.length)plano.push({tag:"Geral",color:T.gold,bg:T.goldFaint,action:"Excelente! Mantenha a consistência."});
+// ─── Módulo Chat genérico ─────────────────────────────────────────
+function ModuloChat({membro,form,scores,apiKey,pacienteId,systemPrompt,inicialMsg,sugestoes}){
+  const eq=EQUIPE.find(e=>e.id===membro);
   return(
-    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
-      <div style={{maxWidth:1000,margin:"0 auto",animation:"fadeUp 0.4s ease"}}>
-        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
-          <div style={{width:50,height:50,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,boxShadow:T.shadowCard}}>{eq.icon}</div>
-          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>{eq.nome} · Plano de Cuidado Integral</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela enfermeira Ana · {new Date().toLocaleDateString("pt-BR")}</div></div>
-          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>SCORE GERAL</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
-        </div>
-        <Card style={{padding:"24px",marginBottom:16}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>To-Do de Hoje</div>
-            <div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:12,color:T.inkMid}}>{todosDone}/{todos.length} concluídos</div><div style={{height:6,width:120,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${todos.length?(todosDone/todos.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`,transition:"width 0.4s ease"}}/></div></div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>{todos.map(todo=>{const done=todoCheck[todo.id];return(<div key={todo.id} onClick={()=>setTodoCheck(prev=>({...prev,[todo.id]:!prev[todo.id]}))} style={{display:"flex",gap:12,alignItems:"center",padding:"12px 16px",background:done?T.surfaceMid:T.bgWarm,border:`1px solid ${done?T.border:todo.corBg}`,borderRadius:8,cursor:"pointer",transition:"all 0.2s",opacity:done?0.6:1}}><div style={{width:22,height:22,borderRadius:6,border:`2px solid ${done?T.green:todo.cor}`,background:done?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{done&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}</div><span style={{fontSize:16,flexShrink:0}}>{todo.icon}</span><div style={{flex:1}}><div style={{fontSize:13,color:done?T.inkFaint:T.ink,fontWeight:500,textDecoration:done?"line-through":"none"}}>{todo.text}</div><div style={{fontSize:10,color:T.inkFaint,marginTop:2}}>{todo.hora}</div></div><span style={{fontSize:9,padding:"3px 8px",borderRadius:4,background:todo.corBg,color:todo.cor,fontWeight:700,letterSpacing:"0.1em"}}>{todo.tipo.toUpperCase()}</span></div>);})}</div>
-        </Card>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-          <Card style={{padding:"20px"}}><Lbl>6 Eixos MEV</Lbl><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>{Object.entries(scores.eixos).map(([n,sc],i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span><div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n],borderRadius:3}}/></div><span style={{fontSize:13,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span></div>))}</div></Card>
-          <Card style={{padding:"20px"}}><Lbl color={T.teal}>Prioridades da Semana</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{plano.map((p,i)=>(<div key={i} style={{padding:"11px 14px",background:p.bg,borderRadius:8,borderLeft:`3px solid ${p.color}`,display:"flex",gap:10,alignItems:"flex-start"}}><span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:"rgba(255,255,255,0.6)",color:p.color,fontWeight:700,letterSpacing:"0.1em",flexShrink:0,marginTop:1}}>{p.tag.toUpperCase()}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{p.action}</span></div>))}</div></Card>
-        </div>
-        {planLog&&planLog.length>0&&(
-          <Card style={{padding:"20px 24px",marginBottom:16}}>
-            <Lbl color={T.blue}>Histórico de Atualizações do Plano</Lbl>
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>
-              {planLog.slice(0,8).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0,marginTop:2}}>{log.data}</span></div>))}
-            </div>
-          </Card>
-        )}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
-          <Card style={{padding:"20px"}}><Lbl>Perfil</Lbl>{[{l:"Nome",v:form?.nome||"—"},{l:"Cargo",v:`${form?.cargo||"—"}`},{l:"Sono",v:`${form?.sono||7}h · qualidade ${form?.qualSono||5}/10`},{l:"Treino",v:`${form?.freqTreino||0}x/sem`},{l:"Estresse",v:`${form?.estresse||5}/10`}].map((it,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",paddingBottom:9,marginBottom:9,borderBottom:i<4?`1px solid ${T.border}`:"none"}}><span style={{fontSize:10,color:T.inkFaint}}>{it.l}</span><span style={{fontSize:12,color:T.ink,fontWeight:500}}>{it.v}</span></div>))}</Card>
-          <Card style={{padding:"20px"}}><Lbl color={T.green}>💊 Medicamentos</Lbl>{(form?.meds||[]).filter(m=>m!=="Nenhum").length===0?<div style={{fontSize:12,color:T.inkFaint,marginTop:10}}>Nenhum registrado.</div>:(form?.meds||[]).filter(m=>m!=="Nenhum").map((m,i)=>(<div key={i} style={{padding:"9px 12px",background:T.greenBg,borderRadius:6,marginBottom:8,borderLeft:`3px solid ${T.green}`}}><div style={{fontSize:12,color:T.ink,fontWeight:500}}>{m}</div></div>))}{(form?.meds||[]).filter(m=>m!=="Nenhum").length>0&&<div style={{marginTop:10,padding:"10px 12px",background:T.redBg,borderRadius:6,border:`1px solid ${T.red}30`}}><div style={{fontSize:11,color:T.red,lineHeight:1.6}}>⚠️ Rafael verifica interações.</div></div>}</Card>
-          <Card style={{padding:"20px"}}><Lbl color={T.purple}>Condições & Gadgets</Lbl><div style={{marginBottom:14}}><div style={{fontSize:10,color:T.inkFaint,marginBottom:8,letterSpacing:"0.1em"}}>CONDIÇÕES</div>{(form?.condicoes||[]).filter(c=>c!=="Nenhuma").length===0?<div style={{fontSize:12,color:T.inkFaint}}>Nenhuma.</div>:(form?.condicoes||[]).filter(c=>c!=="Nenhuma").map((c,i)=><div key={i} style={{fontSize:12,color:T.inkMid,padding:"5px 0",borderBottom:`1px solid ${T.border}`}}>◆ {c}</div>)}</div><div style={{fontSize:10,color:T.inkFaint,marginBottom:8,letterSpacing:"0.1em"}}>GADGETS</div>{(form?.gadgets||[]).length===0?<div style={{fontSize:12,color:T.inkFaint}}>Nenhum.</div>:(form?.gadgets||[]).map((g,i)=><div key={i} style={{fontSize:12,color:T.inkMid,padding:"5px 0",borderBottom:`1px solid ${T.border}`}}>⌚ {g}</div>)}</Card>
-        </div>
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
+        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{eq.icon}</div>
+        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>{eq.nome} · {eq.titulo}</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · HISTÓRICO SALVO AUTOMATICAMENTE</div></div>
+        {membro==="farmaceutico"&&<div style={{marginLeft:"auto",padding:"8px 14px",background:T.redBg,borderRadius:8,border:`1px solid ${T.red}20`}}><div style={{fontSize:11,color:T.red}}>⚠️ Em caso de risco, Rafael alerta o Dr. Dohmann.</div></div>}
       </div>
+      <ChatIA membro={membro} apiKey={apiKey} placeholder={`Fale com ${eq.nome}...`} inicialMsg={inicialMsg} sugestoes={sugestoes} systemPrompt={systemPrompt} pacienteId={pacienteId}/>
     </div>
   );
 }
 
-function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,sessionContext,onPlanUpdate}){
+// ─── Módulo Ana ───────────────────────────────────────────────────
+function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,pacienteId,systemPrompt}){
   const[aba,setAba]=useState(checkinHoje?"chat":"checkin");
   const eq=EQUIPE.find(e=>e.id==="enfermeira");
   const[ci,setCi]=useState({sono:7,energia:7,estresse:5,humor:7,sintomas:"",notas:""});
   const[salvando,setSalvando]=useState(false);const[salvo,setSalvo]=useState(false);
+  const nome=form?.nome||"Executivo";
+
   const salvarCheckin=async()=>{
     setSalvando(true);
     const dados={...ci,data:new Date().toLocaleDateString("pt-BR"),hora:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};
     await onCheckinSalvo(dados);setSalvando(false);setSalvo(true);
     setTimeout(()=>{setSalvo(false);setAba("chat");},1500);
   };
-  const nome=form?.nome||"Executivo";
-  const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
-  const systemPrompt=`Você é Ana, enfermeira coordenadora da equipe HDohmann do Dr. Dohmann. Você é o ponto central de contato do paciente — tem acesso a TODOS os dados e conversas da equipe.
 
-PERFIL DO PACIENTE:
-Nome: ${nome} | Cargo: ${form?.cargo||"—"} | Idade: ${form?.idade||"—"} anos
-Condições: ${(form?.condicoes||[]).filter(c=>c!=="Nenhuma").join(", ")||"nenhuma"}
-Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}
-Sono: ${form?.sono||7}h por noite, qualidade ${form?.qualSono||5}/10
-Treino: ${form?.freqTreino||0}x/semana | Estresse: ${form?.estresse||5}/10 | Dieta: ${form?.dieta||"não definida"}
-Álcool: ${form?.alcool||"não informado"} | Objetivos: ${(form?.metas||[]).join(", ")||"não definidos"}
-Horas de trabalho: ${form?.horasTrab||50}h/semana
-${form?.glicoseJejum?`Glicose em jejum: ${form.glicoseJejum} mg/dL`:""}${form?.colesterolTotal?` | Colesterol total: ${form.colesterolTotal} mg/dL`:""}${form?.pressaoSistolica?` | Pressão: ${form.pressaoSistolica}/${form.pressaoDiastolica} mmHg`:""}
-
-SCORES DOS 6 EIXOS MEV:
-${Object.entries(scores.eixos).map(([n,sc])=>`${n}: ${sc}/100`).join(" | ")}
-Score de Vitalidade: ${scores.total}/100 | Ponto mais fraco: ${lowAxis[0]} (${lowAxis[1]}/100)
-
-CHECK-IN DE HOJE:
-${checkinHoje?`Sono: ${checkinHoje.sono}/10 | Energia: ${checkinHoje.energia}/10 | Estresse: ${checkinHoje.estresse}/10 | Humor: ${checkinHoje.humor}/10${checkinHoje.sintomas?` | Sintomas: ${checkinHoje.sintomas}`:""}${checkinHoje.notas?` | Notas: ${checkinHoje.notas}`:""}`: "Check-in ainda não realizado hoje."}
-
-${sessionContext?`ATIVIDADE NA SESSÃO ATUAL:\n${sessionContext}`:""}
-
-Seu papel: coordenar o cuidado integral. Você pode falar sobre qualquer assunto — saúde, plano de cuidado, medicamentos, genômica, dúvidas sobre o app, resultados de exames, motivação, hábitos. Tom: acolhedor, preciso, profissional e humano. Quando identificar algo que impacte o plano, mencione que será incorporado.`;
   return(
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
       <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{eq.icon}</div>
-        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Ana · Enfermeira Coordenadora</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · COORDENADORA GERAL DO PLANO</div></div>
+        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{eq.icon}</div>
+        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Ana · Enfermeira Coordenadora</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · COORDENADORA GERAL · HISTÓRICO COMPLETO SALVO</div></div>
         <div style={{marginLeft:"auto",display:"flex",gap:16}}>
-          <div style={{textAlign:"right"}}><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.12em"}}>VITALIDADE</div><div style={{fontSize:14,color:T.gold,fontFamily:T.fD,fontWeight:700}}>{scores.total}/100</div></div>
-          <div style={{textAlign:"right"}}><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.12em"}}>CHECK-IN</div><div style={{fontSize:13,color:checkinHoje?T.green:T.orange,fontWeight:700}}>{checkinHoje?"✓ FEITO":"PENDENTE"}</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:8,color:T.inkFaint}}>VITALIDADE</div><div style={{fontSize:14,color:T.gold,fontFamily:T.fD,fontWeight:700}}>{scores.total}/100</div></div>
+          <div style={{textAlign:"right"}}><div style={{fontSize:8,color:T.inkFaint}}>CHECK-IN</div><div style={{fontSize:13,color:checkinHoje?T.green:T.orange,fontWeight:700}}>{checkinHoje?"✓ FEITO":"PENDENTE"}</div></div>
         </div>
       </div>
       <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",display:"flex",background:T.bgWarm,flexShrink:0}}>
         {[{id:"chat",label:"Conversar com Ana"},{id:"checkin",label:"Check-in Diário"}].map(t=>(<button key={t.id} onClick={()=>setAba(t.id)} style={{background:"none",border:"none",borderBottom:`2px solid ${aba===t.id?T.teal:"transparent"}`,padding:"13px 22px",fontSize:10,letterSpacing:"0.15em",textTransform:"uppercase",color:aba===t.id?T.teal:T.inkFaint,cursor:"pointer",fontFamily:T.fB,transition:"all 0.2s",display:"flex",alignItems:"center",gap:6}}>{t.label}{t.id==="checkin"&&!checkinHoje&&<span style={{width:7,height:7,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite"}}/>}</button>))}
       </div>
-      {aba==="chat"&&(
-        <ChatIA membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..."
-          inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Ana, enfermeira coordenadora da sua equipe HDohmann.\n\nTenho acesso a todos os seus dados e ao que foi discutido com sua equipe hoje. Posso ajudar com qualquer assunto — seu plano de cuidado, medicamentos, exames, dúvidas sobre o app ou simplesmente como você está se sentindo.\n\n${checkinHoje?`Vi seu check-in de hoje — energia ${checkinHoje.energia}/10. `:"Você ainda não fez seu check-in de hoje. "}Como posso ajudar?`}
-          sugestoes={["Como está meu plano de cuidado?","Quero entender meus resultados","Como uso o app?","O que devo priorizar esta semana?","Preciso ajustar meus medicamentos"]}
-          systemPrompt={systemPrompt}/>
-      )}
+      {aba==="chat"&&<ChatIA membro="enfermeira" apiKey={apiKey} placeholder="Fale com Ana sobre qualquer assunto de saúde..." inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Ana, sua enfermeira coordenadora. Tenho acesso a todo o seu histórico — conversas anteriores, check-ins, documentos e plano de cuidado.\n\n${checkinHoje?`Vi seu check-in de hoje — energia ${checkinHoje.energia}/10. `:"Você ainda não fez seu check-in de hoje. "}Como posso ajudar?`} sugestoes={["Como está meu plano?","O que devo priorizar?","Como uso o app?","Preciso ajustar meus medicamentos"]} systemPrompt={systemPrompt} pacienteId={pacienteId}/>}
       {aba==="checkin"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
           <div style={{maxWidth:580,margin:"0 auto"}}>
             {checkinHoje?(
               <Card style={{padding:"28px",textAlign:"center",background:T.greenBg,border:`1px solid ${T.green}30`}}>
                 <div style={{fontSize:48,marginBottom:16}}>✅</div>
-                <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Check-in de hoje concluído!</div>
-                <div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.7}}>Seus dados foram incorporados ao plano de cuidado.<br/>Energia: {checkinHoje.energia}/10 · Sono: {checkinHoje.sono}/10 · Estresse: {checkinHoje.estresse}/10</div>
+                <div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Check-in concluído!</div>
+                <div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.7}}>Energia: {checkinHoje.energia}/10 · Sono: {checkinHoje.sono}/10 · Estresse: {checkinHoje.estresse}/10</div>
                 <Btn onClick={()=>setAba("chat")} variant="teal">CONVERSAR COM ANA →</Btn>
               </Card>
             ):(
               <div>
                 <div style={{fontFamily:T.fD,fontSize:24,color:T.ink,marginBottom:6}}>Check-in diário com Ana</div>
-                <div style={{fontSize:13,color:T.inkMid,lineHeight:1.8,marginBottom:28}}>2 minutos para atualizar seu plano de cuidado. Ana usa essas informações para ajustar suas prioridades do dia.</div>
+                <div style={{fontSize:13,color:T.inkMid,lineHeight:1.8,marginBottom:28}}>2 minutos para atualizar seu plano. Dados salvos automaticamente no seu histórico.</div>
                 <Card style={{padding:"28px",display:"flex",flexDirection:"column",gap:22}}>
                   <SldInput label="Como você dormiu esta noite?" value={ci.sono} onChange={v=>setCi(p=>({...p,sono:v}))} min={1} max={10} unit="/10" color={T.purple}/>
                   <SldInput label="Nível de energia agora" value={ci.energia} onChange={v=>setCi(p=>({...p,energia:v}))} min={1} max={10} unit="/10" color={T.teal}/>
@@ -522,7 +611,7 @@ Seu papel: coordenar o cuidado integral. Você pode falar sobre qualquer assunto
                   <SldInput label="Como está seu humor?" value={ci.humor} onChange={v=>setCi(p=>({...p,humor:v}))} min={1} max={10} unit="/10" color={T.gold}/>
                   <TxtInput label="Algum sintoma hoje?" placeholder="Dor, cansaço, tontura... ou deixe em branco" value={ci.sintomas} onChange={v=>setCi(p=>({...p,sintomas:v}))}/>
                   <TxtInput label="Observações para Ana (opcional)" placeholder="Algo que queira compartilhar..." value={ci.notas} onChange={v=>setCi(p=>({...p,notas:v}))}/>
-                  <Btn onClick={salvarCheckin} variant="teal" disabled={salvando} style={{width:"100%",padding:"14px"}}>{salvando?"SALVANDO...":(salvo?"✓ SALVO!":"ENVIAR CHECK-IN PARA ANA →")}</Btn>
+                  <Btn onClick={salvarCheckin} variant="teal" disabled={salvando} style={{width:"100%",padding:"14px"}}>{salvando?"SALVANDO...":(salvo?"✓ SALVO!":"ENVIAR CHECK-IN →")}</Btn>
                 </Card>
               </div>
             )}
@@ -533,71 +622,36 @@ Seu papel: coordenar o cuidado integral. Você pode falar sobre qualquer assunto
   );
 }
 
-function ModuloCoach({form,scores,apiKey}){
-  const eq=EQUIPE.find(e=>e.id==="coach");
-  const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
-  const nome=form?.nome||"Executivo";
-  const sys=`Você é o Coach de Saúde da equipe HDohmann do Dr. Dohmann. Tom: preciso, empático e motivador. Responda APENAS sobre os 6 eixos MEV: Nutrição, Atividade, Sono, Estresse, Relacionamentos, Substâncias. Perfil: ${nome}, ${form?.cargo||"Executivo"}, ${form?.idade||"—"} anos. Condições: ${(form?.condicoes||[]).join(", ")||"nenhuma"}. Medicamentos: ${(form?.meds||[]).join(", ")||"nenhum"}. Sono: ${form?.sono||7}h qualidade ${form?.qualSono||5}/10. Treino: ${form?.freqTreino||0}x/sem. Estresse: ${form?.estresse||5}/10. Dieta: ${form?.dieta||"—"}. Score: ${scores.total}/100.`;
-  return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{eq.icon}</div>
-        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Coach de Saúde</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · IA BASEADA NO SEU PERFIL</div></div>
-        <div style={{marginLeft:"auto",display:"flex",gap:20}}>{[{l:"VITALIDADE",v:`${scores.total}/100`,c:T.gold},{l:"FOCO",v:lowAxis[0],c:T.red}].map((it,i)=>(<div key={i} style={{textAlign:"right"}}><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.12em"}}>{it.l}</div><div style={{fontSize:14,color:it.c,fontFamily:T.fD,fontWeight:700}}>{it.v}</div></div>))}</div>
-      </div>
-      <ChatIA membro="coach" apiKey={apiKey} placeholder="Fale com seu coach sobre saúde e bem-estar..."
-        inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou o seu Coach de Saúde da equipe HDohmann.\n\nScore de Vitalidade: ${scores.total}/100. Ponto prioritário: ${lowAxis[0]} (${lowAxis[1]}/100).\n\nComo posso ajudar hoje?`}
-        sugestoes={[`Como melhorar meu ${lowAxis[0].toLowerCase()}?`,"Qual minha prioridade esta semana?","Como o estresse afeta meu sono?","O que comer antes de reuniões longas?"]}
-        systemPrompt={sys}/>
-    </div>
-  );
-}
-
-function ModuloFarmaceutico({form,scores,apiKey}){
-  const eq=EQUIPE.find(e=>e.id==="farmaceutico");
-  const nome=form?.nome||"Executivo";
-  const sys=`Você é Rafael, farmacêutico clínico da equipe HDohmann. Analise medicamentos e interações. Sempre mencione que alertará o Dr. Dohmann em caso de risco. Nunca altere prescrições. Perfil: ${nome}. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Condições: ${(form?.condicoes||[]).join(", ")||"nenhuma"}.`;
-  return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{eq.icon}</div>
-        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>{eq.nome} · Farmacêutico Clínico</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · ANÁLISE DE RECEITAS E INTERAÇÕES</div></div>
-      </div>
-      <div style={{padding:"12px 28px",background:T.redBg,borderBottom:`1px solid ${T.red}20`,flexShrink:0}}><div style={{display:"flex",gap:10,alignItems:"flex-start"}}><span style={{fontSize:16,flexShrink:0}}>⚠️</span><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}><strong style={{color:T.ink}}>Aviso:</strong> Rafael identificará interações e <strong style={{color:T.red}}>alertará o Dr. Dohmann</strong> em casos de risco. Em urgências, busque atendimento imediato.</div></div></div>
-      <ChatIA membro="farmaceutico" apiKey={apiKey} placeholder="Pergunte sobre medicamentos, doses ou interações..."
-        inicialMsg={`Olá! Sou Rafael, farmacêutico clínico da equipe do Dr. Dohmann.\n\nMedicamentos no seu perfil: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum registrado"}.\n\nEm que posso ajudar?`}
-        sugestoes={["Verificar interações entre meus medicamentos","Como tomar corretamente minha medicação?","Posso tomar vitaminas junto com estatina?","Quais efeitos devo monitorar?"]}
-        systemPrompt={sys}/>
-    </div>
-  );
-}
-
-function ModuloGeneticista({form,scores,apiKey}){
+// ─── Módulo Geneticista ───────────────────────────────────────────
+function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt}){
   const eq=EQUIPE.find(e=>e.id==="geneticista");
   const[pdfB64,setPdfB64]=useState(null);const[pdfNome,setPdfNome]=useState(null);
   const[analise,setAnalise]=useState(null);const[analisando,setAnalisando]=useState(false);
   const[aba,setAba]=useState("risco");const[chatKey,setChatKey]=useState(0);
   const fileRef=useRef(null);
-  const nome=form?.nome||"Executivo";
-  const sys=`Você é a Dra. Clara, geneticista da equipe HDohmann. Interprete laudos genéticos com precisão e didatismo. Conecte achados ao plano de cuidado. Para riscos elevados, informe que o Dr. Dohmann será notificado. Perfil: ${nome}, ${form?.cargo||"Executivo"}.`;
+
   const handlePdf=async(file)=>{
     if(!file)return;setPdfNome(file.name);setAnalisando(true);setAba("risco");
     const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
     try{
       const b64=await toB64(file);setPdfB64(b64);
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o laudo genético e retorne APENAS JSON sem markdown: {"resumo":"2-3 frases","nivel_risco_geral":"alto|moderado|baixo","achados":[{"categoria":"nome","gene":"gene","variante":"descrição","impacto":"alto|moderado|baixo","orientacao":"orientação clínica"}],"nutricao":"recomendação","atividade":"recomendação","sono":"orientação","medicamentos":"farmacogenômica","rastreamento":"exames preventivos","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem"}]}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
-      const data=await res.json();setAnalise(JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim()));setChatKey(k=>k+1);
-    }catch{setAnalise({erro:"Erro ao analisar. Verifique sua API Key."});}finally{setAnalisando(false);}
+      const data=await res.json();
+      setAnalise(JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim()));
+      setChatKey(k=>k+1);
+    }catch{setAnalise({erro:"Erro ao analisar."});}finally{setAnalisando(false);}
   };
+
   const ic=(i)=>({alto:T.red,moderado:T.gold,baixo:T.green})[i]||T.inkMid;
   const ib=(i)=>({alto:T.redBg,moderado:T.goldFaint,baixo:T.greenBg})[i]||T.surfaceMid;
+
   return(
     <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{eq.icon}</div>
-        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>{eq.nome} · Geneticista Clínica</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · ANÁLISE DE LAUDOS GENÉTICOS</div></div>
+      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0}}>
+        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{eq.icon}</div>
+        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>{eq.nome} · Geneticista Clínica</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE</div></div>
         <div style={{marginLeft:"auto",display:"flex",gap:10,alignItems:"center"}}>
-          {pdfNome&&<span style={{fontSize:10,color:T.purple,background:T.purpleBg,padding:"4px 12px",borderRadius:20,border:`1px solid ${T.purple}30`}}>📄 {pdfNome.slice(0,24)}{pdfNome.length>24?"...":""}</span>}
+          {pdfNome&&<span style={{fontSize:10,color:T.purple,background:T.purpleBg,padding:"4px 12px",borderRadius:20}}>📄 {pdfNome.slice(0,24)}</span>}
           <Btn onClick={()=>fileRef.current?.click()} variant="outline" style={{borderColor:T.purple,color:T.purple}}>{pdfB64?"TROCAR LAUDO":"CARREGAR LAUDO →"}</Btn>
           <input ref={fileRef} type="file" accept=".pdf" onChange={e=>handlePdf(e.target.files[0])} style={{display:"none"}}/>
         </div>
@@ -607,67 +661,95 @@ function ModuloGeneticista({form,scores,apiKey}){
       </div>
       {aba==="risco"&&(
         <div style={{flex:1,overflowY:"auto",padding:"28px"}}>
-          {!pdfB64&&!analisando&&(<div style={{maxWidth:900,margin:"0 auto"}}><div onClick={()=>fileRef.current?.click()} style={{cursor:"pointer",marginBottom:28}}><Card hover style={{padding:"40px",textAlign:"center",border:`2px dashed ${T.purple}40`,background:T.purpleBg}}><div style={{fontSize:48,marginBottom:16}}>🧬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Carregue seu laudo genético</div><div style={{fontSize:13,color:T.inkMid,marginBottom:20,lineHeight:1.8}}>A Dra. Clara irá analisar e extrair todos os achados relevantes.</div><Btn variant="outline" style={{borderColor:T.purple,color:T.purple}}>SELECIONAR PDF →</Btn></Card></div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:16}}>O que sua análise cobre</div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>{PAINEL_GENETICO.map((cat,i)=>(<Card key={i} style={{overflow:"hidden"}}><div style={{padding:"14px 18px",borderBottom:`1px solid ${T.border}`,background:cat.bg,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:22}}>{cat.icon}</span><div><div style={{fontSize:13,color:cat.color,fontWeight:600}}>{cat.cat}</div><div style={{fontSize:9,color:T.inkFaint,marginTop:2}}>{cat.genes.length} GENES</div></div></div><div style={{padding:"12px 18px"}}><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7,marginBottom:10}}>{cat.desc}</div><div style={{display:"flex",flexWrap:"wrap",gap:4}}>{cat.genes.map((g,j)=><span key={j} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:cat.bg,color:cat.color,border:`1px solid ${cat.color}30`,fontFamily:T.fB}}>{g}</span>)}</div></div></Card>))}</div></div>)}
-          {analisando&&(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:20,textAlign:"center"}}><div style={{fontSize:48,animation:"spin 2s linear infinite",display:"inline-block"}}>🧬</div><div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Dra. Clara analisando seu laudo...</div></div>)}
-          {analise&&!analisando&&(<div style={{maxWidth:900,margin:"0 auto",display:"flex",flexDirection:"column",gap:16,animation:"fadeUp 0.4s ease"}}>{analise.erro?<Card style={{padding:"20px",background:T.redBg}}><div style={{fontSize:13,color:T.red}}>{analise.erro}</div></Card>:(<><Card style={{overflow:"hidden"}}><div style={{padding:"20px 24px",borderBottom:`1px solid ${T.border}`,background:T.purpleBg,display:"flex",gap:14,alignItems:"flex-start"}}><div style={{width:36,height:36,borderRadius:"50%",background:T.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🧬</div><div><Lbl color={T.purple}>Dra. Clara · Análise Genômica</Lbl><div style={{fontSize:14,color:T.ink,lineHeight:1.8}}>{analise.resumo}</div></div>{analise.nivel_risco_geral&&<div style={{marginLeft:"auto",padding:"6px 14px",borderRadius:20,background:ib(analise.nivel_risco_geral),border:`1px solid ${ic(analise.nivel_risco_geral)}40`,fontSize:10,color:ic(analise.nivel_risco_geral),fontWeight:700,letterSpacing:"0.12em",flexShrink:0}}>{analise.nivel_risco_geral.toUpperCase()}</div>}</div><div style={{padding:"14px 24px",background:T.bgWarm}}><div style={{fontSize:12,color:T.inkMid}}>💡 Faça suas perguntas na aba <strong>"Falar com Dra. Clara"</strong>.</div></div></Card>{(analise.alertas||[]).map((a,i)=>{const lv={critico:{c:T.red,bg:T.redBg,icon:"🚨"},atencao:{c:T.gold,bg:T.goldFaint,icon:"⚠️"},informativo:{c:T.blue,bg:T.blueBg,icon:"ℹ️"}}[a.nivel]||{c:T.blue,bg:T.blueBg,icon:"ℹ️"};return(<Card key={i} style={{padding:"14px 18px",background:lv.bg,border:`1px solid ${lv.c}30`}}><div style={{display:"flex",gap:10}}><span style={{fontSize:18}}>{lv.icon}</span><span style={{fontSize:13,color:T.ink,lineHeight:1.7}}>{a.msg}</span></div></Card>);})}{(analise.achados||[]).length>0&&<Card style={{padding:"20px 24px"}}><Lbl>Achados por Variante</Lbl><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>{analise.achados.map((a,i)=>(<div key={i} style={{padding:"14px 16px",background:ib(a.impacto),border:`1px solid ${ic(a.impacto)}30`,borderRadius:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}><div style={{display:"flex",gap:8,alignItems:"center"}}><span style={{fontSize:12,color:T.ink,fontWeight:600}}>{a.gene}</span><span style={{fontSize:10,color:T.inkFaint}}>· {a.categoria}</span></div><span style={{fontSize:9,padding:"3px 9px",borderRadius:4,background:"rgba(255,255,255,0.7)",color:ic(a.impacto),fontWeight:700}}>IMPACTO {(a.impacto||"").toUpperCase()}</span></div><div style={{fontSize:11,color:T.inkMid,marginBottom:8}}>{a.variante}</div><div style={{fontSize:12,color:T.ink,lineHeight:1.6,borderTop:`1px solid rgba(0,0,0,0.06)`,paddingTop:8}}><span style={{color:ic(a.impacto)}}>→ </span>{a.orientacao}</div></div>))}</div></Card>}<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>{[{label:"Nutrição",key:"nutricao",color:T.gold,bg:T.goldFaint,icon:"🥗"},{label:"Atividade",key:"atividade",color:T.teal,bg:T.tealBg,icon:"⚡"},{label:"Sono",key:"sono",color:T.purple,bg:T.purpleBg,icon:"◑"},{label:"Farmacogenômica",key:"medicamentos",color:T.blue,bg:T.blueBg,icon:"💊"}].map((item,i)=>analise[item.key]&&(<Card key={i} style={{padding:"18px 20px",background:item.bg,border:`1px solid ${item.color}30`}}><div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center"}}><span style={{fontSize:18}}>{item.icon}</span><Lbl color={item.color}>{item.label}</Lbl></div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{analise[item.key]}</div></Card>))}</div>{analise.rastreamento&&<Card style={{padding:"18px 22px",background:T.redBg,border:`1px solid ${T.red}30`}}><div style={{display:"flex",gap:8,marginBottom:10,alignItems:"center"}}><span>⚠️</span><Lbl color={T.red}>Rastreamentos Prioritários</Lbl></div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{analise.rastreamento}</div></Card>}</>)}</div>)}
+          {!pdfB64&&!analisando&&(<div onClick={()=>fileRef.current?.click()} style={{cursor:"pointer",maxWidth:600,margin:"0 auto"}}><Card style={{padding:"40px",textAlign:"center",border:`2px dashed ${T.purple}40`,background:T.purpleBg}}><div style={{fontSize:48,marginBottom:16}}>🧬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.ink,marginBottom:8}}>Carregue seu laudo genético</div><div style={{fontSize:13,color:T.inkMid,marginBottom:20}}>A Dra. Clara analisa e extrai todos os achados relevantes.</div><Btn variant="outline" style={{borderColor:T.purple,color:T.purple}}>SELECIONAR PDF →</Btn></Card></div>)}
+          {analisando&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:20,textAlign:"center"}}><div style={{fontSize:48,animation:"spin 2s linear infinite",display:"inline-block"}}>🧬</div><div style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>Dra. Clara analisando...</div></div>}
+          {analise&&!analisando&&(
+            <div style={{maxWidth:900,margin:"0 auto",display:"flex",flexDirection:"column",gap:16}}>
+              {analise.erro?<Card style={{padding:"20px",background:T.redBg}}><div style={{color:T.red}}>{analise.erro}</div></Card>:(
+                <>
+                  <Card style={{overflow:"hidden"}}><div style={{padding:"20px 24px",background:T.purpleBg,display:"flex",gap:14}}><div style={{flex:1}}><Lbl color={T.purple}>Dra. Clara · Análise</Lbl><div style={{fontSize:14,color:T.ink,lineHeight:1.8}}>{analise.resumo}</div></div>{analise.nivel_risco_geral&&<div style={{padding:"6px 14px",borderRadius:20,background:ib(analise.nivel_risco_geral),fontSize:10,color:ic(analise.nivel_risco_geral),fontWeight:700,alignSelf:"flex-start"}}>{analise.nivel_risco_geral.toUpperCase()}</div>}</div></Card>
+                  {(analise.alertas||[]).map((a,i)=>(<Card key={i} style={{padding:"14px 18px",background:{critico:T.redBg,atencao:T.goldFaint,informativo:T.blueBg}[a.nivel]||T.blueBg}}><div style={{display:"flex",gap:10}}><span>{{critico:"🚨",atencao:"⚠️",informativo:"ℹ️"}[a.nivel]}</span><span style={{fontSize:13,color:T.ink,lineHeight:1.7}}>{a.msg}</span></div></Card>))}
+                  {(analise.achados||[]).length>0&&<Card style={{padding:"20px 24px"}}><Lbl>Achados por Variante</Lbl>{analise.achados.map((a,i)=>(<div key={i} style={{padding:"12px 14px",background:ib(a.impacto),borderRadius:8,marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><div><strong style={{fontSize:12}}>{a.gene}</strong><span style={{fontSize:10,color:T.inkFaint}}> · {a.categoria}</span></div><span style={{fontSize:9,padding:"2px 8px",background:"rgba(255,255,255,0.7)",borderRadius:4,color:ic(a.impacto),fontWeight:700}}>{(a.impacto||"").toUpperCase()}</span></div><div style={{fontSize:11,color:T.inkMid,marginBottom:6}}>{a.variante}</div><div style={{fontSize:12,color:T.ink,lineHeight:1.6,borderTop:`1px solid rgba(0,0,0,0.06)`,paddingTop:6}}><span style={{color:ic(a.impacto)}}>→ </span>{a.orientacao}</div></div>))}</Card>}
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
-      {aba==="chat"&&(!pdfB64?<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20,padding:40,textAlign:"center"}} onClick={()=>fileRef.current?.click()}><div style={{width:80,height:80,borderRadius:"50%",background:T.purpleBg,border:`2px dashed ${T.purple}60`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36,cursor:"pointer"}}>🧬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Carregue seu laudo primeiro</div><Btn variant="outline" style={{borderColor:T.purple,color:T.purple}}>SELECIONAR PDF →</Btn></div>:<ChatIA key={chatKey} membro="geneticista" apiKey={apiKey} pdfB64={pdfB64} placeholder="Pergunte sobre seus resultados genéticos..." inicialMsg={`Olá! Sou a Dra. Clara.\n\nLi seu laudo "${pdfNome}". Pronta para responder suas perguntas.\n\nO que gostaria de saber?`} sugestoes={["O que significam minhas variantes de risco?","Como isso afeta minha nutrição?","Tenho risco cardiovascular elevado?","Quais exames preventivos são prioritários?"]} systemPrompt={sys}/>)}
+      {aba==="chat"&&(!pdfB64?<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:40,textAlign:"center"}}><div style={{fontSize:48}}>🧬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Carregue seu laudo primeiro</div><Btn onClick={()=>fileRef.current?.click()} variant="outline" style={{borderColor:T.purple,color:T.purple}}>SELECIONAR PDF →</Btn></div>:<ChatIA key={chatKey} membro="geneticista" apiKey={apiKey} pdfB64={pdfB64} placeholder="Pergunte sobre seus resultados..." inicialMsg={`Olá! Li seu laudo "${pdfNome}". Pronta para suas perguntas.`} sugestoes={["O que significam minhas variantes?","Como isso afeta minha nutrição?","Quais exames preventivos devo fazer?"]} systemPrompt={systemPrompt} pacienteId={pacienteId}/>)}
     </div>
   );
 }
 
-function ModuloDocumentos({apiKey,onPlanUpdate}){
+// ─── Módulo Documentos ────────────────────────────────────────────
+function ModuloDocumentos({apiKey,pacienteId,onPlanUpdate}){
   const fileRef=useRef(null);
   const[docs,setDocs]=useState([]);
   const[selDoc,setSelDoc]=useState(null);
+  const[carregando,setCarregando]=useState(true);
+
   const TIPO_META={"genetico":{icon:"🧬",color:T.purple,bg:T.purpleBg},"imagem":{icon:"🩻",color:T.blue,bg:T.blueBg},"clinico":{icon:"🔬",color:T.teal,bg:T.tealBg},"receita":{icon:"💊",color:T.green,bg:T.greenBg},"atestado":{icon:"📋",color:T.gold,bg:T.goldFaint},"relatorio":{icon:"📄",color:T.orange,bg:T.orangeBg},"consulta":{icon:"🩺",color:T.red,bg:T.redBg},"outro":{icon:"📎",color:T.inkFaint,bg:T.surfaceMid}};
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    carregarDocumentos(pacienteId).then(data=>{
+      setDocs(data.map(d=>({id:d.id,titulo:d.titulo,tipo:d.tipo,status:"pronto",data:d.data,analise:d.conteudo_json,origem:d.origem})));
+      setCarregando(false);
+    });
+  },[pacienteId]);
+
   const handleDocUpload=async(files)=>{
-    if(!apiKey)return;
+    if(!apiKey||!pacienteId)return;
     for(const file of Array.from(files)){
       if(!file.type.includes("pdf"))continue;
-      const id=Date.now()+Math.random();
+      const id=`temp-${Date.now()}`;
       setDocs(prev=>[{id,titulo:file.name.replace(".pdf",""),tipo:"outro",status:"analisando",data:new Date().toLocaleDateString("pt-BR"),analise:null},...prev]);
       setSelDoc(id);
       const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
       try{
         const b64=await toB64(file);
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome se disponível","resumo":"resumo em 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"como isso impacta o plano de cuidado"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
+        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o documento de saúde e retorne APENAS JSON sem markdown: {"tipo":"genetico|imagem|clinico|receita|atestado|relatorio|consulta|outro","titulo":"título","profissional":"nome","resumo":"resumo 2-3 frases","diagnosticos":["lista"],"medicamentos":[{"nome":"","dose":"","frequencia":""}],"checklist":[{"item":"","urgencia":"alta|media|baixa"}],"alertas":[{"nivel":"critico|atencao|informativo","mensagem":""}],"impacto_plano":"impacto no plano"}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este documento."}]}]})});
         const data=await res.json();
         const parsed=JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
-        setDocs(prev=>prev.map(d=>d.id===id?{...d,titulo:parsed.titulo||d.titulo,tipo:parsed.tipo||"outro",status:"pronto",analise:parsed}:d));
-        onPlanUpdate({icon:"📄",cor:T.blue,titulo:`Documento analisado: ${parsed.titulo||file.name}`,descricao:parsed.impacto_plano||"Documento incorporado ao plano de cuidado.",data:new Date().toLocaleDateString("pt-BR")});
+        // Salvar no Supabase
+        const docSalvo=await salvarDocumento(pacienteId,{titulo:parsed.titulo||file.name,tipo:parsed.tipo||"outro",resumo:parsed.resumo,analise:parsed});
+        setDocs(prev=>prev.map(d=>d.id===id?{...d,id:docSalvo?.id||id,titulo:parsed.titulo||d.titulo,tipo:parsed.tipo||"outro",status:"pronto",analise:parsed}:d));
+        if(docSalvo)setSelDoc(docSalvo.id);
+        await onPlanUpdate({icon:"📄",cor:T.blue,titulo:`Documento analisado: ${parsed.titulo||file.name}`,descricao:parsed.impacto_plano||"Documento incorporado ao plano.",data:new Date().toLocaleDateString("pt-BR")});
       }catch{setDocs(prev=>prev.map(d=>d.id===id?{...d,status:"erro"}:d));}
     }
   };
+
   const docAtual=docs.find(d=>d.id===selDoc);
+
   return(
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{width:280,flexShrink:0,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflow:"hidden",background:T.bgWarm}}>
         <div style={{padding:"16px"}}>
-          <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();handleDocUpload(e.dataTransfer.files);}} onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${T.borderMid}`,borderRadius:10,padding:"20px",textAlign:"center",cursor:"pointer",background:T.surface,transition:"all 0.2s",boxShadow:T.shadowCard}} onMouseOver={e=>{e.currentTarget.style.borderColor=T.gold;e.currentTarget.style.background=T.goldFaint;}} onMouseOut={e=>{e.currentTarget.style.borderColor=T.borderMid;e.currentTarget.style.background=T.surface;}}>
-            <div style={{fontSize:28,marginBottom:6}}>📄</div><div style={{fontSize:12,color:T.inkMid,marginBottom:3,fontWeight:500}}>Arraste PDFs aqui</div><div style={{fontSize:10,color:T.inkFaint}}>ou clique para selecionar</div>
+          <div onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();handleDocUpload(e.dataTransfer.files);}} onClick={()=>fileRef.current?.click()} style={{border:`2px dashed ${T.borderMid}`,borderRadius:10,padding:"20px",textAlign:"center",cursor:"pointer",background:T.surface,transition:"all 0.2s"}} onMouseOver={e=>{e.currentTarget.style.borderColor=T.gold;}} onMouseOut={e=>{e.currentTarget.style.borderColor=T.borderMid;}}>
+            <div style={{fontSize:28,marginBottom:6}}>📄</div><div style={{fontSize:12,color:T.inkMid,fontWeight:500}}>Arraste PDFs aqui</div><div style={{fontSize:10,color:T.inkFaint}}>ou clique para selecionar</div>
           </div>
           <input ref={fileRef} type="file" accept=".pdf" multiple onChange={e=>handleDocUpload(e.target.files)} style={{display:"none"}}/>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"0 12px 12px",display:"flex",flexDirection:"column",gap:8}}>
-          {docs.length===0&&<div style={{textAlign:"center",padding:"32px 16px"}}><div style={{fontSize:28,marginBottom:10}}>📂</div><div style={{fontSize:12,color:T.inkFaint,lineHeight:1.6}}>Nenhum documento ainda.</div></div>}
-          {docs.map(doc=>{const tm=TIPO_META[doc.tipo]||TIPO_META.outro;return(<div key={doc.id} onClick={()=>setSelDoc(doc.id)} style={{padding:"12px 14px",background:selDoc===doc.id?T.goldFaint:T.surface,border:`1.5px solid ${selDoc===doc.id?T.gold:T.border}`,borderRadius:8,cursor:"pointer",transition:"all 0.18s",boxShadow:T.shadowCard}}><div style={{display:"flex",gap:10,alignItems:"flex-start"}}><div style={{width:32,height:32,borderRadius:6,background:tm.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{tm.icon}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:T.ink,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{doc.titulo}</div><div style={{display:"flex",gap:5,alignItems:"center"}}><span style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:tm.bg,color:tm.color,fontWeight:700}}>{doc.tipo.toUpperCase()}</span><span style={{fontSize:9,color:T.inkFaint}}>{doc.data}</span></div></div>{doc.status==="analisando"&&<div style={{width:7,height:7,borderRadius:"50%",background:T.gold,animation:"pulse 1.2s ease infinite",flexShrink:0,marginTop:3}}/>}{doc.status==="pronto"&&<div style={{width:7,height:7,borderRadius:"50%",background:T.green,flexShrink:0,marginTop:3}}/>}</div></div>);})}
+          {carregando&&<div style={{textAlign:"center",padding:"20px",fontSize:11,color:T.inkFaint}}>Carregando...</div>}
+          {!carregando&&docs.length===0&&<div style={{textAlign:"center",padding:"32px 16px"}}><div style={{fontSize:28,marginBottom:10}}>📂</div><div style={{fontSize:12,color:T.inkFaint}}>Nenhum documento ainda.</div></div>}
+          {docs.map(doc=>{const tm=TIPO_META[doc.tipo]||TIPO_META.outro;const isMediaco=doc.origem==="medico";return(<div key={doc.id} onClick={()=>setSelDoc(doc.id)} style={{padding:"12px 14px",background:selDoc===doc.id?T.goldFaint:T.surface,border:`1.5px solid ${selDoc===doc.id?T.gold:T.border}`,borderRadius:8,cursor:"pointer",transition:"all 0.18s"}}><div style={{display:"flex",gap:10,alignItems:"flex-start"}}><div style={{width:32,height:32,borderRadius:6,background:tm.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{tm.icon}</div><div style={{flex:1,minWidth:0}}><div style={{fontSize:12,color:T.ink,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{doc.titulo}</div><div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}><span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:tm.bg,color:tm.color,fontWeight:700}}>{doc.tipo.toUpperCase()}</span>{isMediaco&&<span style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:T.navyBg||T.blueBg,color:T.blue,fontWeight:700}}>DR.</span>}<span style={{fontSize:9,color:T.inkFaint}}>{doc.data}</span></div></div>{doc.status==="analisando"&&<div style={{width:7,height:7,borderRadius:"50%",background:T.gold,animation:"pulse 1.2s ease infinite",flexShrink:0,marginTop:3}}/>}{doc.status==="pronto"&&<div style={{width:7,height:7,borderRadius:"50%",background:T.green,flexShrink:0,marginTop:3}}/>}</div></div>);})}
         </div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"28px 32px"}}>
-        {!docAtual&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16,textAlign:"center"}}><div style={{fontSize:48}}>🩺</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Selecione ou envie um documento</div><div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>A equipe extrai diagnósticos, medicamentos, exames e ações. Cada documento atualiza seu plano automaticamente.</div></div>}
-        {docAtual?.status==="analisando"&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"80%",gap:16,textAlign:"center"}}><div style={{fontSize:40,animation:"spin 2s linear infinite",display:"inline-block"}}>🔬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.ink}}>Equipe analisando e atualizando o plano...</div></div>}
+        {!docAtual&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16,textAlign:"center"}}><div style={{fontSize:48}}>🩺</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Selecione ou envie um documento</div><div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>A equipe extrai diagnósticos, medicamentos e ações. Documentos do médico aparecem aqui automaticamente.</div></div>}
+        {docAtual?.status==="analisando"&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"80%",gap:16,textAlign:"center"}}><div style={{fontSize:40,animation:"spin 2s linear infinite",display:"inline-block"}}>🔬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.ink}}>Analisando e atualizando o plano...</div></div>}
         {docAtual?.analise&&(
-          <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:800,animation:"fadeUp 0.4s ease"}}>
-            <Card style={{overflow:"hidden"}}><div style={{padding:"18px 22px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:14,alignItems:"flex-start"}}><div style={{width:44,height:44,borderRadius:8,background:(TIPO_META[docAtual.tipo]||TIPO_META.outro).bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{(TIPO_META[docAtual.tipo]||TIPO_META.outro).icon}</div><div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:4}}>{docAtual.analise.titulo}</div>{docAtual.analise.profissional&&<span style={{fontSize:11,color:T.inkFaint}}>Dr(a). {docAtual.analise.profissional}</span>}</div></div><div style={{padding:"16px 22px",background:T.goldFaint,display:"flex",gap:12}}><div style={{width:30,height:30,borderRadius:"50%",background:T.surface,border:`1.5px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>H</div><div><Lbl color={T.gold}>Equipe HDohmann · Análise</Lbl><div style={{fontSize:13,color:T.ink,lineHeight:1.75}}>{docAtual.analise.resumo}</div></div></div></Card>
-            {docAtual.analise.impacto_plano&&<Card style={{padding:"16px 20px",background:T.tealBg,border:`1px solid ${T.teal}30`}}><div style={{display:"flex",gap:10,alignItems:"flex-start"}}><span style={{fontSize:18}}>📋</span><div><div style={{fontSize:12,color:T.teal,fontWeight:600,marginBottom:4}}>Impacto no Plano de Cuidado</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{docAtual.analise.impacto_plano}</div></div></div></Card>}
-            {(docAtual.analise.alertas||[]).map((a,i)=>{const lv={critico:{c:T.red,bg:T.redBg,icon:"🚨"},atencao:{c:T.gold,bg:T.goldFaint,icon:"⚠️"},informativo:{c:T.blue,bg:T.blueBg,icon:"ℹ️"}}[a.nivel]||{c:T.blue,bg:T.blueBg,icon:"ℹ️"};return(<Card key={i} style={{padding:"14px 18px",background:lv.bg,border:`1px solid ${lv.c}30`}}><div style={{display:"flex",gap:10}}><span style={{fontSize:16}}>{lv.icon}</span><span style={{fontSize:13,color:T.ink,lineHeight:1.6}}>{a.mensagem}</span></div></Card>);})}
+          <div style={{display:"flex",flexDirection:"column",gap:16,maxWidth:800}}>
+            <Card style={{overflow:"hidden"}}><div style={{padding:"18px 22px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:14}}><div style={{width:44,height:44,borderRadius:8,background:(TIPO_META[docAtual.tipo]||TIPO_META.outro).bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{(TIPO_META[docAtual.tipo]||TIPO_META.outro).icon}</div><div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink,marginBottom:4}}>{docAtual.analise.titulo}</div>{docAtual.analise.profissional&&<span style={{fontSize:11,color:T.inkFaint}}>Dr(a). {docAtual.analise.profissional}</span>}</div></div><div style={{padding:"16px 22px",background:T.goldFaint,display:"flex",gap:12}}><div style={{width:30,height:30,borderRadius:"50%",background:T.surface,border:`1.5px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>H</div><div><Lbl color={T.gold}>Equipe HDohmann · Análise</Lbl><div style={{fontSize:13,color:T.ink,lineHeight:1.75}}>{docAtual.analise.resumo}</div></div></div></Card>
+            {docAtual.analise.impacto_plano&&<Card style={{padding:"16px 20px",background:T.tealBg,border:`1px solid ${T.teal}30`}}><div style={{display:"flex",gap:10}}><span style={{fontSize:18}}>📋</span><div><div style={{fontSize:12,color:T.teal,fontWeight:600,marginBottom:4}}>Impacto no Plano de Cuidado</div><div style={{fontSize:12,color:T.inkMid,lineHeight:1.7}}>{docAtual.analise.impacto_plano}</div></div></div></Card>}
+            {(docAtual.analise.alertas||[]).map((a,i)=>{const lv={critico:{c:T.red,bg:T.redBg,icon:"🚨"},atencao:{c:T.gold,bg:T.goldFaint,icon:"⚠️"},informativo:{c:T.blue,bg:T.blueBg,icon:"ℹ️"}}[a.nivel]||{c:T.blue,bg:T.blueBg,icon:"ℹ️"};return(<Card key={i} style={{padding:"14px 18px",background:lv.bg}}><div style={{display:"flex",gap:10}}><span style={{fontSize:16}}>{lv.icon}</span><span style={{fontSize:13,color:T.ink,lineHeight:1.6}}>{a.mensagem}</span></div></Card>);})}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-              {(docAtual.analise.diagnosticos||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.purple}>Diagnósticos</Lbl>{docAtual.analise.diagnosticos.map((d,i)=><div key={i} style={{fontSize:12,color:T.inkMid,padding:"6px 0",borderBottom:`1px solid ${T.border}`,lineHeight:1.5}}>◆ {d}</div>)}</Card>}
-              {(docAtual.analise.medicamentos||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.green}>💊 Medicamentos</Lbl>{docAtual.analise.medicamentos.map((m,i)=>(<div key={i} style={{padding:"9px 12px",background:T.greenBg,borderRadius:6,marginBottom:8,borderLeft:`3px solid ${T.green}`}}><div style={{fontSize:12,color:T.ink,fontWeight:500}}>{m.nome}</div><div style={{fontSize:11,color:T.inkFaint}}>{m.dose} {m.frequencia}</div></div>))}</Card>}
+              {(docAtual.analise.diagnosticos||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.purple}>Diagnósticos</Lbl>{docAtual.analise.diagnosticos.map((d,i)=><div key={i} style={{fontSize:12,color:T.inkMid,padding:"6px 0",borderBottom:`1px solid ${T.border}`}}>◆ {d}</div>)}</Card>}
+              {(docAtual.analise.medicamentos||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.green}>💊 Medicamentos</Lbl>{docAtual.analise.medicamentos.map((m,i)=>(<div key={i} style={{padding:"8px 10px",background:T.greenBg,borderRadius:5,marginBottom:6,borderLeft:`3px solid ${T.green}`}}><div style={{fontSize:12,color:T.ink,fontWeight:500}}>{m.nome}</div><div style={{fontSize:11,color:T.inkFaint}}>{m.dose} {m.frequencia}</div></div>))}</Card>}
             </div>
-            {(docAtual.analise.checklist||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.green}>✓ Ações a Executar</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:10}}>{docAtual.analise.checklist.map((item,i)=>(<div key={i} style={{display:"flex",gap:10,padding:"10px 14px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:18,height:18,borderRadius:5,border:`2px solid ${T.border}`,flexShrink:0,marginTop:1}}/><span style={{fontSize:12,color:T.inkMid,lineHeight:1.5}}>{item.item}</span></div>))}</div></Card>}
+            {(docAtual.analise.checklist||[]).length>0&&<Card style={{padding:"18px 20px"}}><Lbl color={T.green}>✓ Ações a Executar</Lbl>{docAtual.analise.checklist.map((item,i)=>(<div key={i} style={{display:"flex",gap:10,padding:"10px 14px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`,marginBottom:6}}><div style={{width:18,height:18,borderRadius:5,border:`2px solid ${T.border}`,flexShrink:0,marginTop:1}}/><span style={{fontSize:12,color:T.inkMid,lineHeight:1.5}}>{item.item}</span></div>))}</Card>}
           </div>
         )}
       </div>
@@ -675,7 +757,137 @@ function ModuloDocumentos({apiKey,onPlanUpdate}){
   );
 }
 
+// ─── Módulo Mensagens ─────────────────────────────────────────────
+function ModuloMensagens({pacienteId,nome}){
+  const[msgs,setMsgs]=useState([]);
+  const[carregando,setCarregando]=useState(true);
+  const bottomRef=useRef(null);
+
+  useEffect(()=>{
+    if(!pacienteId)return;
+    carregarMensagens(pacienteId).then(data=>{setMsgs(data);setCarregando(false);});
+    // Escutar novas mensagens em tempo real
+    const channel=supabase.channel(`mensagens-${pacienteId}`)
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"mensagens",filter:`paciente_id=eq.${pacienteId}`},(payload)=>{setMsgs(prev=>[...prev,payload.new]);})
+      .subscribe();
+    return()=>supabase.removeChannel(channel);
+  },[pacienteId]);
+
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  const eq=EQUIPE.find(e=>e.id==="enfermeira");
+
+  return(
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
+        <div style={{width:42,height:42,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{eq.icon}</div>
+        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Mensagens da Ana</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · NOTIFICAÇÕES E AVISOS DA EQUIPE</div></div>
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:"24px 28px"}}>
+        {carregando&&<div style={{textAlign:"center",padding:"40px",fontSize:12,color:T.inkFaint}}>Carregando mensagens...</div>}
+        {!carregando&&msgs.length===0&&(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"60%",gap:16,textAlign:"center"}}>
+            <div style={{width:80,height:80,borderRadius:"50%",background:T.tealBg,border:`2px solid ${T.teal}20`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:36}}>💬</div>
+            <div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Nenhuma mensagem ainda</div>
+            <div style={{fontSize:13,color:T.inkFaint,maxWidth:360,lineHeight:1.8}}>Quando a Ana ou o Dr. Dohmann enviarem avisos, documentos ou orientações, elas aparecerão aqui.</div>
+          </div>
+        )}
+        {msgs.map((msg,i)=>{
+          const isAna=msg.remetente==="ana";const isMedico=msg.remetente==="medico";
+          const isUser=msg.remetente==="paciente";
+          return(
+            <div key={i} style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:12,marginBottom:18,alignItems:"flex-start"}}>
+              {!isUser&&<div style={{width:36,height:36,borderRadius:"50%",background:isAna?T.tealBg:T.navyBg||T.blueBg,border:`1.5px solid ${isAna?T.teal:T.blue}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>{isAna?"🩺":"👨‍⚕️"}</div>}
+              <div style={{maxWidth:"74%"}}>
+                <div style={{fontSize:9,color:T.inkFaint,marginBottom:4,fontFamily:T.fB}}>{isAna?"ANA · ENFERMEIRA":isMedico?"DR. DOHMANN":"VOCÊ"} · {new Date(msg.created_at).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</div>
+                <div style={{padding:"14px 18px",background:isUser?T.goldFaint:T.surface,border:`1px solid ${isUser?T.goldBorder:T.border}`,borderRadius:isUser?"16px 16px 4px 16px":"4px 16px 16px 16px",fontSize:13,color:T.ink,lineHeight:1.8,whiteSpace:"pre-wrap",boxShadow:T.shadowCard}}>{msg.conteudo}</div>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────
+function ModuloDashboard({form,scores,setModulo,checkinHoje,planLog,onPlanUpdate}){
+  const nome=form?.nome||"Executivo";
+  const lowAxis=Object.entries(scores.eixos).sort((a,b)=>a[1]-b[1])[0];
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:980,margin:"0 auto",display:"flex",flexDirection:"column",gap:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div><div style={{fontFamily:T.fD,fontSize:32,color:T.ink,marginBottom:4}}>Bom dia, {nome.split(" ")[0]}.</div><div style={{fontSize:13,color:T.inkMid}}>Sua equipe HDohmann está ativa e seus dados estão salvos com segurança.</div></div>
+          <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.12em"}}>{new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"}).toUpperCase()}</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"200px 1fr",gap:16}}>
+          <Card style={{padding:"24px 20px",display:"flex",flexDirection:"column",alignItems:"center",gap:12}}>
+            <Lbl>Score de Vitalidade</Lbl>
+            <RadialScore value={scores.total} size={100}/>
+            <div style={{fontSize:11,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,letterSpacing:"0.12em",fontWeight:700}}>{scores.total>=75?"ALTO DESEMPENHO":scores.total>=50?"EM PROGRESSO":"ATENÇÃO"}</div>
+          </Card>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            {Object.entries(scores.eixos).map(([n,sc],i)=>(<Card key={i} style={{padding:"16px"}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}><span style={{fontSize:11,color:T.inkMid}}>{n}</span><span style={{fontSize:20,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700}}>{sc}</span></div><div style={{height:4,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n]}}/></div><div style={{marginTop:6,fontSize:10,color:T.inkFaint}}>{sc>=80?"Excelente":sc>=65?"Bom":sc>=50?"Regular":"Atenção"}</div></Card>))}
+          </div>
+        </div>
+        {!checkinHoje&&<Card style={{padding:"20px 24px",background:T.tealBg,border:`1px solid ${T.teal}30`,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontFamily:T.fD,fontSize:18,color:T.ink,marginBottom:4}}>Check-in diário pendente</div><div style={{fontSize:12,color:T.inkMid}}>A Ana está esperando seu check-in de hoje — 2 minutos.</div></div><Btn onClick={()=>setModulo("ana")} variant="teal">FAZER CHECK-IN →</Btn></Card>}
+        {checkinHoje&&<Card style={{padding:"16px 20px",background:T.greenBg,border:`1px solid ${T.green}30`,display:"flex",alignItems:"center",gap:14}}><div style={{width:36,height:36,borderRadius:"50%",background:T.green,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>✓</div><div><div style={{fontSize:13,color:T.ink,fontWeight:500}}>Check-in concluído hoje</div><div style={{fontSize:11,color:T.inkMid}}>Energia {checkinHoje.energia}/10 · Sono {checkinHoje.sono}/10 · Estresse {checkinHoje.estresse}/10</div></div></Card>}
+        <div><Lbl>Sua equipe de cuidado</Lbl><div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>{EQUIPE.map(e=>(<Card key={e.id} hover onClick={()=>setModulo(e.id==="coach"?"coach":e.id==="farmaceutico"?"farmaceutico":e.id==="geneticista"?"geneticista":"ana")} style={{padding:"18px"}}><div style={{width:44,height:44,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,marginBottom:12}}>{e.icon}</div><div style={{fontSize:13,color:e.cor,marginBottom:3,fontWeight:600}}>{e.nome}</div><div style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.1em",marginBottom:8}}>{e.titulo}</div><div style={{display:"flex",alignItems:"center",gap:5,marginTop:12}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`}}/><span style={{fontSize:9,color:T.green,letterSpacing:"0.12em"}}>ONLINE</span></div></Card>))}</div></div>
+        {planLog&&planLog.length>0&&<Card style={{padding:"20px 24px"}}><Lbl color={T.blue}>Histórico de Atualizações do Plano</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{planLog.slice(0,6).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0}}>{log.data}</span></div>))}</div></Card>}
+        <Card style={{padding:"20px 24px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div><Lbl color={T.gold}>Prioridade da semana</Lbl><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Foco em <span style={{color:AXIS_COLORS[lowAxis[0]]}}>{lowAxis[0]}</span> — score: {lowAxis[1]}/100</div></div>
+          <Btn onClick={()=>setModulo("coach")} variant="gold">FALAR COM O COACH →</Btn>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ─── Plano de Cuidado ─────────────────────────────────────────────
+function ModuloPlano({form,scores,setModulo,planLog,checkinHoje}){
+  const[todoCheck,setTodoCheck]=useState({});
+  const eq=EQUIPE.find(e=>e.id==="enfermeira");
+  const todos=[
+    ...((form?.meds||[]).filter(m=>m!=="Nenhum").map((m,i)=>({id:`med-${i}`,tipo:"medicamento",icon:"💊",text:`Tomar ${m}`,hora:"Conforme prescrição",cor:T.green,corBg:T.greenBg}))),
+    scores.eixos["Sono"]<75&&{id:"sono-1",tipo:"hábito",icon:"🌙",text:"Desligar telas até 22h",hora:"22:00",cor:T.purple,corBg:T.purpleBg},
+    scores.eixos["Atividade"]<75&&{id:"atv-1",tipo:"hábito",icon:"🏃",text:`Treino — ${(form?.exercicios||["atividade física"])[0]||"atividade física"}`,hora:"Manhã",cor:T.teal,corBg:T.tealBg},
+    scores.eixos["Estresse"]<75&&{id:"est-1",tipo:"hábito",icon:"🌿",text:"Respiração 4-7-8 pós-reunião",hora:"Após reuniões",cor:T.red,corBg:T.redBg},
+    {id:"agua-1",tipo:"hábito",icon:"💧",text:"2L de água ao longo do dia",hora:"Durante o dia",cor:T.blue,corBg:T.blueBg},
+  ].filter(Boolean);
+  const todosDone=todos.filter(t=>todoCheck[t.id]).length;
+  const plano=[
+    scores.eixos["Sono"]<70&&{tag:"Sono",color:T.purple,bg:T.purpleBg,action:`Sono de ${form?.sono||7}h — alvo 7–9h.`},
+    scores.eixos["Atividade"]<70&&{tag:"Atividade",color:T.teal,bg:T.tealBg,action:`${form?.freq_treino||0}x/sem — alvo 4x.`},
+    scores.eixos["Estresse"]<70&&{tag:"Estresse",color:T.red,bg:T.redBg,action:`Estresse ${form?.estresse||5}/10 — técnicas de respiração.`},
+  ].filter(Boolean);
+  if(!plano.length)plano.push({tag:"Geral",color:T.gold,bg:T.goldFaint,action:"Excelente! Mantenha a consistência."});
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:"32px"}}>
+      <div style={{maxWidth:1000,margin:"0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:24}}>
+          <div style={{width:50,height:50,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{eq.icon}</div>
+          <div><div style={{fontFamily:T.fD,fontSize:26,color:T.ink}}>{eq.nome} · Plano de Cuidado Integral</div><div style={{fontSize:11,color:T.inkFaint}}>Coordenado pela enfermeira Ana · {new Date().toLocaleDateString("pt-BR")} · Dados sincronizados com Supabase</div></div>
+          <div style={{marginLeft:"auto",textAlign:"right"}}><div style={{fontSize:9,color:T.inkFaint}}>SCORE GERAL</div><div style={{fontFamily:T.fD,fontSize:30,color:scores.total>=75?T.green:scores.total>=50?T.gold:T.red,fontWeight:700}}>{scores.total}<span style={{fontSize:14,color:T.inkFaint}}>/100</span></div></div>
+        </div>
+        <Card style={{padding:"24px",marginBottom:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>To-Do de Hoje</div><div style={{display:"flex",alignItems:"center",gap:10}}><div style={{fontSize:12,color:T.inkMid}}>{todosDone}/{todos.length} concluídos</div><div style={{height:6,width:120,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${todos.length?(todosDone/todos.length)*100:0}%`,background:`linear-gradient(90deg,${T.gold},${T.green})`}}/></div></div></div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>{todos.map(todo=>{const done=todoCheck[todo.id];return(<div key={todo.id} onClick={()=>setTodoCheck(prev=>({...prev,[todo.id]:!prev[todo.id]}))} style={{display:"flex",gap:12,alignItems:"center",padding:"12px 16px",background:done?T.surfaceMid:T.bgWarm,border:`1px solid ${done?T.border:todo.corBg}`,borderRadius:8,cursor:"pointer",transition:"all 0.2s",opacity:done?0.6:1}}><div style={{width:22,height:22,borderRadius:6,border:`2px solid ${done?T.green:todo.cor}`,background:done?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{done&&<span style={{fontSize:11,color:"#FFF",fontWeight:700}}>✓</span>}</div><span style={{fontSize:16,flexShrink:0}}>{todo.icon}</span><div style={{flex:1}}><div style={{fontSize:13,color:done?T.inkFaint:T.ink,fontWeight:500,textDecoration:done?"line-through":"none"}}>{todo.text}</div><div style={{fontSize:10,color:T.inkFaint}}>{todo.hora}</div></div><span style={{fontSize:9,padding:"3px 8px",borderRadius:4,background:todo.corBg,color:todo.cor,fontWeight:700}}>{todo.tipo.toUpperCase()}</span></div>);})}</div>
+        </Card>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
+          <Card style={{padding:"20px"}}><Lbl>6 Eixos MEV</Lbl><div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>{Object.entries(scores.eixos).map(([n,sc],i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:11,color:T.inkMid,width:120,flexShrink:0}}>{n}</span><div style={{flex:1,height:5,background:T.surfaceMid,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",width:`${sc}%`,background:AXIS_COLORS[n],borderRadius:3}}/></div><span style={{fontSize:13,color:AXIS_COLORS[n],fontFamily:T.fD,fontWeight:700,width:28,textAlign:"right"}}>{sc}</span></div>))}</div></Card>
+          <Card style={{padding:"20px"}}><Lbl color={T.teal}>Prioridades da Semana</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{plano.map((p,i)=>(<div key={i} style={{padding:"11px 14px",background:p.bg,borderRadius:8,borderLeft:`3px solid ${p.color}`,display:"flex",gap:10}}><span style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:"rgba(255,255,255,0.6)",color:p.color,fontWeight:700,flexShrink:0,marginTop:1}}>{p.tag.toUpperCase()}</span><span style={{fontSize:12,color:T.inkMid,lineHeight:1.6}}>{p.action}</span></div>))}</div></Card>
+        </div>
+        {planLog&&planLog.length>0&&<Card style={{padding:"20px 24px"}}><Lbl color={T.blue}>Histórico de Atualizações</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:12}}>{planLog.slice(0,8).map((log,i)=>(<div key={i} style={{display:"flex",gap:12,alignItems:"flex-start",padding:"10px 12px",background:T.bgWarm,borderRadius:8,border:`1px solid ${T.border}`}}><div style={{width:28,height:28,borderRadius:6,background:`${log.cor||T.blue}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{log.icon||"📋"}</div><div style={{flex:1}}><div style={{fontSize:12,color:T.ink,fontWeight:500,marginBottom:2}}>{log.titulo}</div><div style={{fontSize:11,color:T.inkMid,lineHeight:1.5}}>{log.descricao}</div></div><span style={{fontSize:9,color:T.inkFaint,flexShrink:0}}>{log.data}</span></div>))}</div></Card>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Integrações ──────────────────────────────────────────────────
 function ModuloIntegracoes(){
+  const INTEGRACOES=[{id:"samsung",nome:"Samsung Health",icon:"📱",color:T.blue,plat:["Android"],passos:["Abra o Samsung Health no Android","Emparelhe Galaxy Watch via Bluetooth","Configurações → Google Fit → Conectar","HDohmann lê via Google Fit automaticamente"]},{id:"apple",nome:"Apple Health",icon:"❤️",color:T.red,plat:["iOS"],passos:["Abra o app Saúde no iPhone","Vá em seu nome → Apps e Dispositivos","Autorize o HDohmann na primeira abertura","Sincronização automática em segundo plano"]},{id:"watch",nome:"Apple Watch",icon:"⌚",color:T.blue,plat:["iOS"],passos:["Emparelhe com iPhone pelo app Watch","Ative monitoramento de sono","Ative HRV em Configurações","Dados chegam via Apple Health"]},{id:"garmin",nome:"Garmin",icon:"🏔",color:T.orange,plat:["iOS","Android"],passos:["Instale o Garmin Connect","Ative compartilhamento","Conecte ao Apple Health","HDohmann recebe Body Battery"]},{id:"oura",nome:"Oura Ring",icon:"💍",color:T.purple,plat:["iOS","Android"],passos:["Baixe o app Oura","Use toda noite","App Oura → Apple Health → Ativar","Android: Personal Token em ouraring.com"]},{id:"whoop",nome:"Whoop 4.0",icon:"📿",color:T.green,plat:["iOS","Android"],passos:["Baixe o app Whoop","Use 24h no pulso","Whoop → Apple Health → Conectar","Recovery Score ajusta seu treino"]},{id:"withings",nome:"Withings Scale",icon:"⚖️",color:T.gold,plat:["iOS","Android"],passos:["Instale Health Mate via Wi-Fi","Pese-se pela manhã","Health Mate → Apple Health","HDohmann ajusta metas"]},{id:"dexcom",nome:"Dexcom G7",icon:"📡",color:T.orange,plat:["iOS","Android"],passos:["Necessita prescrição médica","Aplique o sensor no braço","Instale o app Dexcom G7","App Dexcom → Apple Health"]}];
   const[selInt,setSelInt]=useState(null);const[connected,setConnected]=useState({});const[stepsDone,setStepsDone]=useState({});
   const item=INTEGRACOES.find(i=>i.id===selInt);
   const isSD=(id,idx)=>!!stepsDone[`${id}-${idx}`];
@@ -685,119 +897,90 @@ function ModuloIntegracoes(){
     <div style={{flex:1,display:"flex",overflow:"hidden"}}>
       <div style={{flex:1,overflowY:"auto",padding:"24px 28px",background:T.bg}}>
         <div style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em",marginBottom:16}}>DISPOSITIVOS — {Object.values(connected).filter(Boolean).length} CONECTADO(S)</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:12}}>
-          {INTEGRACOES.map(it=>{const conn=!!connected[it.id];return(<Card key={it.id} hover onClick={()=>setSelInt(it.id===selInt?null:it.id)} style={{padding:"18px",border:`1.5px solid ${selInt===it.id?T.gold:conn?T.green+"60":T.border}`,background:selInt===it.id?T.goldFaint:T.surface}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><div style={{width:40,height:40,borderRadius:10,background:conn?T.greenBg:`${it.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,boxShadow:T.shadowCard}}>{it.icon}</div><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:7,height:7,borderRadius:"50%",background:conn?T.green:T.surfaceMid,boxShadow:conn?`0 0 7px ${T.green}60`:"none"}}/><span style={{fontSize:9,color:conn?T.green:T.inkFaint,letterSpacing:"0.1em"}}>{conn?"CONECTADO":"OFFLINE"}</span></div></div><div style={{fontSize:13,color:T.ink,fontWeight:600,marginBottom:6}}>{it.nome}</div><div style={{display:"flex",gap:4,marginBottom:8}}>{it.plat.map(p=><span key={p} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:p==="iOS"?T.blueBg:T.greenBg,color:p==="iOS"?T.blue:T.green,fontFamily:T.fB}}>{p}</span>)}</div></Card>);})}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:12}}>
+          {INTEGRACOES.map(it=>{const conn=!!connected[it.id];return(<Card key={it.id} onClick={()=>setSelInt(it.id===selInt?null:it.id)} style={{padding:"18px",border:`1.5px solid ${selInt===it.id?T.gold:conn?T.green+"60":T.border}`,background:selInt===it.id?T.goldFaint:T.surface}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}><div style={{width:40,height:40,borderRadius:10,background:conn?T.greenBg:`${it.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{it.icon}</div><div style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:7,height:7,borderRadius:"50%",background:conn?T.green:T.surfaceMid}}/><span style={{fontSize:9,color:conn?T.green:T.inkFaint}}>{conn?"CONECTADO":"OFFLINE"}</span></div></div><div style={{fontSize:13,color:T.ink,fontWeight:600,marginBottom:6}}>{it.nome}</div><div style={{display:"flex",gap:4}}>{it.plat.map(p=><span key={p} style={{fontSize:9,padding:"2px 6px",borderRadius:4,background:p==="iOS"?T.blueBg:T.greenBg,color:p==="iOS"?T.blue:T.green,fontFamily:T.fB}}>{p}</span>)}</div></Card>);})}
         </div>
       </div>
-      {item&&(<div style={{width:360,flexShrink:0,borderLeft:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflow:"hidden",background:T.surface,boxShadow:"-2px 0 12px rgba(60,50,30,0.04)"}}><div style={{padding:"20px 22px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12}}><div style={{width:42,height:42,borderRadius:10,background:`${item.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>{item.icon}</div><div style={{flex:1}}><div style={{fontSize:15,color:T.ink,fontWeight:600}}>{item.nome}</div><div style={{display:"flex",gap:4,marginTop:4}}>{item.plat.map(p=><span key={p} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:p==="iOS"?T.blueBg:T.greenBg,color:p==="iOS"?T.blue:T.green,fontFamily:T.fB}}>{p}</span>)}</div></div><button onClick={()=>setSelInt(null)} style={{background:"none",border:"none",color:T.inkFaint,cursor:"pointer",fontSize:18,padding:4}}>✕</button></div><div style={{flex:1,overflowY:"auto",padding:"20px 22px"}}><Lbl color={T.gold}>Passos de Configuração</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:10}}>{item.passos.map((p,i)=>{const done=isSD(item.id,i);return(<div key={i} onClick={()=>togSD(item.id,i)} style={{display:"flex",gap:10,padding:"12px 14px",background:done?T.greenBg:T.bgWarm,border:`1.5px solid ${done?T.green+"50":T.border}`,borderRadius:8,cursor:"pointer",transition:"all 0.2s",boxShadow:T.shadowCard}}><div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${done?T.green:T.borderMid}`,background:done?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1,transition:"all 0.2s"}}>{done?<span style={{fontSize:10,color:"#FFF",fontWeight:700}}>✓</span>:<span style={{fontSize:9,color:T.inkFaint}}>{i+1}</span>}</div><span style={{fontSize:12,color:done?T.inkFaint:T.ink,lineHeight:1.6,textDecoration:done?"line-through":"none"}}>{p}</span></div>);})}</div><div style={{marginTop:20}}>{allDone(item.id)&&!connected[item.id]?<Btn onClick={()=>setConnected(prev=>({...prev,[item.id]:true}))} variant="gold" style={{width:"100%",padding:13}}>✓ MARCAR COMO CONECTADO</Btn>:connected[item.id]?<div style={{display:"flex",gap:8}}><div style={{flex:1,padding:11,background:T.greenBg,border:`1.5px solid ${T.green}40`,borderRadius:8,textAlign:"center",fontSize:11,color:T.green,letterSpacing:"0.15em",fontWeight:700}}>✓ CONECTADO</div><Btn onClick={()=>setConnected(prev=>({...prev,[item.id]:false}))} variant="outline">Desconectar</Btn></div>:<Card style={{padding:"14px 16px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`}}><div style={{fontSize:12,color:T.inkMid,lineHeight:1.6,marginBottom:10}}>Complete todos os passos acima.</div><div style={{display:"flex",gap:6,alignItems:"center"}}><div style={{height:3,flex:1,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${(item.passos.filter((_,idx)=>isSD(item.id,idx)).length/item.passos.length)*100}%`,background:T.gold,transition:"width 0.3s ease"}}/></div><span style={{fontSize:9,color:T.inkFaint}}>{item.passos.filter((_,idx)=>isSD(item.id,idx)).length}/{item.passos.length}</span></div></Card>}</div></div></div>)}
+      {item&&(<div style={{width:340,flexShrink:0,borderLeft:`1px solid ${T.border}`,display:"flex",flexDirection:"column",overflow:"hidden",background:T.surface}}><div style={{padding:"20px",borderBottom:`1px solid ${T.border}`,display:"flex",alignItems:"center",gap:12}}><div style={{width:40,height:40,borderRadius:10,background:`${item.color}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>{item.icon}</div><div style={{flex:1}}><div style={{fontSize:14,color:T.ink,fontWeight:600}}>{item.nome}</div></div><button onClick={()=>setSelInt(null)} style={{background:"none",border:"none",color:T.inkFaint,cursor:"pointer",fontSize:18}}>✕</button></div><div style={{flex:1,overflowY:"auto",padding:"20px"}}><Lbl color={T.gold}>Passos de Configuração</Lbl><div style={{display:"flex",flexDirection:"column",gap:8,marginTop:10}}>{item.passos.map((p,i)=>{const done=isSD(item.id,i);return(<div key={i} onClick={()=>togSD(item.id,i)} style={{display:"flex",gap:10,padding:"12px 14px",background:done?T.greenBg:T.bgWarm,border:`1.5px solid ${done?T.green+"50":T.border}`,borderRadius:8,cursor:"pointer",transition:"all 0.2s"}}><div style={{width:22,height:22,borderRadius:"50%",border:`2px solid ${done?T.green:T.borderMid}`,background:done?T.green:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{done?<span style={{fontSize:10,color:"#FFF",fontWeight:700}}>✓</span>:<span style={{fontSize:9,color:T.inkFaint}}>{i+1}</span>}</div><span style={{fontSize:12,color:done?T.inkFaint:T.ink,lineHeight:1.6,textDecoration:done?"line-through":"none"}}>{p}</span></div>);})}</div><div style={{marginTop:20}}>{allDone(item.id)&&!connected[item.id]?<Btn onClick={()=>setConnected(prev=>({...prev,[item.id]:true}))} variant="gold" style={{width:"100%",padding:13}}>✓ MARCAR COMO CONECTADO</Btn>:connected[item.id]?<div style={{padding:11,background:T.greenBg,border:`1.5px solid ${T.green}40`,borderRadius:8,textAlign:"center",fontSize:11,color:T.green,fontWeight:700}}>✓ CONECTADO</div>:<Card style={{padding:"14px 16px",background:T.goldFaint,border:`1px solid ${T.goldBorder}`}}><div style={{fontSize:12,color:T.inkMid,marginBottom:8}}>Complete todos os passos.</div><div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${(item.passos.filter((_,idx)=>isSD(item.id,idx)).length/item.passos.length)*100}%`,background:T.gold}}/></div></Card>}</div></div></div>)}
     </div>
   );
 }
 
-function ModuloSuporte({apiKey,form}){
-  const nome=form?.nome||"Executivo";
-  const sys=`Você é a Central de Atendimento HDohmann. Responda dúvidas sobre o app e o programa de saúde do Dr. Dohmann. Seja claro, amigável e objetivo. Sobre o app: módulos de Painel, Plano de Cuidado, Chat com Ana (enfermeira coordenadora com acesso a todos os dados), Coach de Saúde, Farmácia (Rafael), Genômica (Dra. Clara), Documentos e Integrações com gadgets. O plano é atualizado automaticamente por gadgets, check-in diário e upload de documentos. O Score de Vitalidade é calculado com base nos 6 eixos MEV. Sobre o programa: Medicina do Estilo de Vida complementar ao médico atual, focado em prevenção e alta performance. Usuário: ${nome}.`;
-  return(
-    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      <div style={{borderBottom:`1px solid ${T.border}`,padding:"16px 28px",display:"flex",alignItems:"center",gap:14,background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-        <div style={{width:42,height:42,borderRadius:"50%",background:T.blueBg,border:`1.5px solid ${T.blue}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,boxShadow:T.shadowCard}}>💬</div>
-        <div><div style={{fontFamily:T.fD,fontSize:20,color:T.ink}}>Central de Suporte HDohmann</div><div style={{fontSize:9,color:T.green,letterSpacing:"0.15em"}}>● ONLINE · DÚVIDAS SOBRE O APP E O PROGRAMA</div></div>
-      </div>
-      <ChatIA membro="enfermeira" apiKey={apiKey} placeholder="Como posso te ajudar?"
-        inicialMsg={`Olá, ${nome.split(" ")[0]}! Sou a Central de Atendimento HDohmann.\n\nPosso responder dúvidas sobre como usar o app, como funciona a equipe de saúde, o programa do Dr. Dohmann, ou qualquer outra questão sobre o serviço.\n\nO que posso esclarecer para você?`}
-        sugestoes={["Como funciona o Score de Vitalidade?","Para que serve o check-in diário?","Como adicionar um gadget?","O que a Ana pode fazer por mim?","Como envio meus exames?","O que é Medicina do Estilo de Vida?"]}
-        systemPrompt={sys}/>
-    </div>
-  );
-}
-
-function AppPrincipal({user,form,apiKey,onLogout}){
-  const[modulo,setModulo]=useState("dashboard");
-  const[checkinHoje,setCheckinHoje]=useState(null);
-  const[planLog,setPlanLog]=useState([]);
-  const[sessionCtx]=useState("");
-  const scores=calcScores(form,checkinHoje);
-  const nome=form?.nome||user.name||"Executivo";
-  const initials=nome.split(" ").slice(0,2).map(n=>n[0]).join("").toUpperCase();
-
-  useEffect(()=>{
-    const hoje=new Date().toLocaleDateString("pt-BR");
-    loadCheckin(user.userId).then(ci=>{if(ci&&ci.data===hoje)setCheckinHoje(ci);});
-    loadPlanLog(user.userId).then(log=>{if(log&&log.length)setPlanLog(log);});
-  },[user.userId]);
-
-  const onPlanUpdate=useCallback(async(evento)=>{
-    setPlanLog(prev=>{const novoLog=[evento,...prev].slice(0,20);savePlanLog(user.userId,novoLog);return novoLog;});
-  },[user.userId]);
-
-  const onCheckinSalvo=useCallback(async(dados)=>{
-    setCheckinHoje(dados);
-    await saveCheckin(user.userId,dados);
-    onPlanUpdate({icon:"✅",cor:T.teal,titulo:"Check-in diário realizado",descricao:`Energia ${dados.energia}/10 · Sono ${dados.sono}/10 · Estresse ${dados.estresse}/10. Scores recalibrados.`,data:dados.data});
-  },[user.userId,onPlanUpdate]);
-
-  const checkinPendente=!checkinHoje;
-  return(
-    <div style={{display:"flex",height:"100vh",background:T.bg,fontFamily:T.fB,color:T.ink,overflow:"hidden"}}>
-      <div style={{width:222,flexShrink:0,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",background:T.surface,height:"100vh",position:"sticky",top:0,overflow:"hidden",boxShadow:"2px 0 12px rgba(60,50,30,0.04)"}}>
-        <div style={{padding:"20px 20px 16px",borderBottom:`1px solid ${T.border}`}}><div style={{display:"flex",alignItems:"baseline",gap:6}}><span style={{fontFamily:T.fD,fontSize:24,color:T.ink}}>H</span><span style={{fontFamily:T.fD,fontSize:24,color:T.gold}}>Dohmann</span></div><div style={{fontSize:8,letterSpacing:"0.22em",color:T.inkFaint,marginTop:2}}>SAÚDE EXECUTIVA</div></div>
-        <div style={{padding:"12px 16px 10px",borderBottom:`1px solid ${T.border}`,display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{width:34,height:34,borderRadius:"50%",background:T.goldFaint,border:`1.5px solid ${T.goldBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:T.gold,fontWeight:700,flexShrink:0,boxShadow:T.shadowCard}}>{initials}</div>
-          <div style={{minWidth:0}}><div style={{fontSize:12,color:T.ink,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",fontWeight:500}}>{nome.split(" ")[0]}</div><div style={{fontSize:9,color:T.inkFaint}}>{form?.cargo||"Executivo"}</div></div>
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"10px 10px"}}>
-          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"6px 10px 8px"}}>NAVEGAÇÃO</div>
-          {MODULOS.map(m=>{
-            const eq=m.membro?EQUIPE.find(e=>e.id===m.membro):null;
-            const active=modulo===m.id;
-            const showDot=m.id==="ana"&&checkinPendente;
-            return(<button key={m.id} onClick={()=>setModulo(m.id)} style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,background:active?T.goldFaint:"transparent",border:`1px solid ${active?T.goldBorder:"transparent"}`,cursor:"pointer",transition:"all 0.18s",fontFamily:T.fB,textAlign:"left",marginBottom:2,boxShadow:active?T.shadowCard:"none"}} onMouseOver={e=>{if(!active)e.currentTarget.style.background=T.surfaceMid;}} onMouseOut={e=>{if(!active)e.currentTarget.style.background="transparent";}}>
-              <span style={{fontSize:15,flexShrink:0}}>{m.icon}</span>
-              <span style={{fontSize:12,color:active?T.gold:T.inkMid,fontWeight:active?600:400}}>{m.label}</span>
-              {showDot&&<span style={{marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:T.orange,display:"inline-block",animation:"pulse 1.5s ease infinite",flexShrink:0}}/>}
-              {!showDot&&eq&&<div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:eq.cor,boxShadow:`0 0 6px ${eq.cor}60`}}/>}
-            </button>);
-          })}
-          <div style={{fontSize:8,letterSpacing:"0.2em",color:T.inkFaint,padding:"14px 10px 8px"}}>SUA EQUIPE</div>
-          {EQUIPE.map(e=>(<div key={e.id} style={{display:"flex",gap:10,alignItems:"center",padding:"8px 12px",borderRadius:8}}><div style={{width:30,height:30,borderRadius:"50%",background:e.bg,border:`1.5px solid ${e.cor}40`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0,boxShadow:T.shadowCard}}>{e.icon}</div><div style={{minWidth:0}}><div style={{fontSize:11,color:T.inkMid,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.nome}</div><div style={{fontSize:8,color:T.inkFaint,letterSpacing:"0.08em"}}>{e.titulo}</div></div><div style={{marginLeft:"auto",width:7,height:7,borderRadius:"50%",background:T.green,boxShadow:`0 0 6px ${T.green}60`,flexShrink:0}}/></div>))}
-        </div>
-        <div style={{padding:"14px 16px",borderTop:`1px solid ${T.border}`}}>
-          <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}><span style={{fontSize:10,color:T.inkFaint}}>VITALIDADE</span><span style={{fontSize:13,color:T.gold,fontFamily:T.fD,fontWeight:700}}>{scores.total}/100</span></div>
-          <div style={{height:3,background:T.surfaceMid,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${scores.total}%`,background:`linear-gradient(90deg,${T.gold},${T.teal})`}}/></div>
-          <button onClick={onLogout} style={{marginTop:12,width:"100%",padding:"7px",background:"transparent",border:`1px solid ${T.border}`,borderRadius:6,color:T.inkFaint,fontFamily:T.fB,fontSize:9,letterSpacing:"0.12em",cursor:"pointer"}}>SAIR</button>
-        </div>
-      </div>
-      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        <div style={{borderBottom:`1px solid ${T.border}`,padding:"0 28px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.surface,flexShrink:0,boxShadow:T.shadowCard}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:10,color:T.inkFaint,letterSpacing:"0.15em"}}>HDohmann Health</span><span style={{color:T.border}}>›</span><span style={{fontSize:11,color:T.inkMid,letterSpacing:"0.12em",fontWeight:500}}>{MODULOS.find(m=>m.id===modulo)?.label}</span></div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:6,height:6,borderRadius:"50%",background:T.green,boxShadow:`0 0 8px ${T.green}60`,animation:"pulse 2s ease infinite"}}/><span style={{fontSize:9,color:T.inkFaint,letterSpacing:"0.12em"}}>EQUIPE ONLINE</span></div>
-        </div>
-        {modulo==="dashboard"    && <ModuloDashboard form={form} scores={scores} setModulo={setModulo} checkinHoje={checkinHoje}/>}
-        {modulo==="plano"        && <ModuloPlano form={form} scores={scores} setModulo={setModulo} planLog={planLog} checkinHoje={checkinHoje}/>}
-        {modulo==="ana"          && <ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} sessionContext={sessionCtx} onPlanUpdate={onPlanUpdate}/>}
-        {modulo==="coach"        && <ModuloCoach form={form} scores={scores} apiKey={apiKey}/>}
-        {modulo==="farmaceutico" && <ModuloFarmaceutico form={form} scores={scores} apiKey={apiKey}/>}
-        {modulo==="geneticista"  && <ModuloGeneticista form={form} scores={scores} apiKey={apiKey}/>}
-        {modulo==="documentos"   && <ModuloDocumentos apiKey={apiKey} onPlanUpdate={onPlanUpdate}/>}
-        {modulo==="integracoes"  && <ModuloIntegracoes/>}
-        {modulo==="suporte"      && <ModuloSuporte apiKey={apiKey} form={form}/>}
-      </div>
-    </div>
-  );
-}
-
+// ─── Processing ───────────────────────────────────────────────────
 function ScreenProcessing(){
-  return(<div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB}}><div style={{textAlign:"center",maxWidth:420,padding:32}}><div style={{fontFamily:T.fD,fontSize:52,color:T.gold,marginBottom:8,animation:"pulse 2s ease infinite",lineHeight:1}}>H</div><div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:4}}>Sua equipe está se preparando</div><div style={{fontSize:11,color:T.inkFaint,marginBottom:32,letterSpacing:"0.12em"}}>EQUIPE HDOHMANN · CONFIGURANDO SEU PLANO</div><div style={{display:"flex",flexDirection:"column",gap:10}}>{["Ana está montando seu plano de cuidado integral...","Coach analisando seus objetivos e dados...","Rafael verificando sua lista de medicamentos...","Dra. Clara aguardando seu laudo genético...","Configurando alertas personalizados..."].map((msg,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:T.surface,borderRadius:8,border:`1px solid ${T.border}`,boxShadow:T.shadowCard,animation:`fadeUp 0.4s ease ${i*0.45}s both`}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,animation:`pulse 1.5s ease ${i*0.3}s infinite`,flexShrink:0}}/><span style={{fontSize:12,color:T.inkMid}}>{msg}</span></div>))}</div></div></div>);
+  return(<div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB}}><div style={{textAlign:"center",maxWidth:420,padding:32}}><div style={{fontFamily:T.fD,fontSize:52,color:T.gold,marginBottom:8,animation:"pulse 2s ease infinite",lineHeight:1}}>H</div><div style={{fontFamily:T.fD,fontSize:28,color:T.ink,marginBottom:4}}>Sua equipe está se preparando</div><div style={{fontSize:11,color:T.inkFaint,marginBottom:32,letterSpacing:"0.12em"}}>EQUIPE HDOHMANN · CONFIGURANDO SEU PLANO</div><div style={{display:"flex",flexDirection:"column",gap:10}}>{["Ana está montando seu plano de cuidado...","Coach analisando seus objetivos...","Rafael verificando seus medicamentos...","Dra. Clara aguardando seu laudo genético...","Sincronizando com o servidor..."].map((msg,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",background:T.surface,borderRadius:8,border:`1px solid ${T.border}`,boxShadow:T.shadowCard,animation:`fadeUp 0.4s ease ${i*0.45}s both`}}><div style={{width:7,height:7,borderRadius:"50%",background:T.green,animation:`pulse 1.5s ease ${i*0.3}s infinite`,flexShrink:0}}/><span style={{fontSize:12,color:T.inkMid}}>{msg}</span></div>))}</div></div></div>);
 }
 
+// ─── ROOT ─────────────────────────────────────────────────────────
 export default function HDohmann(){
-  const[screen,setScreen]=useState("login");
+  const[screen,setScreen]=useState("loading");
   const[user,setUser]=useState(null);
   const[apiKey,setApiKey]=useState("");
   const[form,setForm]=useState(null);
-  const handleLogin=async(userData)=>{setUser(userData);const saved=await loadProfile(userData.userId);if(saved){setForm(saved);setScreen("apikey");}else setScreen("apikey");};
+  const[pacienteId,setPacienteId]=useState(null);
+
+  // Verificar sessão existente
+  useEffect(()=>{
+    supabase.auth.getSession().then(async({data:{session}})=>{
+      if(session?.user){
+        const u={userId:session.user.id,email:session.user.email,name:session.user.user_metadata?.name||session.user.email.split("@")[0]};
+        setUser(u);
+        // Carregar perfil
+        const pid=await getPacienteId(session.user.id);
+        if(pid){
+          setPacienteId(pid);
+          const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
+          if(perfil){setForm(perfil);setScreen("apikey");}
+          else setScreen("apikey");
+        }else{
+          setScreen("apikey");
+        }
+      }else{
+        setScreen("login");
+      }
+    });
+    // Escutar mudanças de auth
+    const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
+      if(event==="SIGNED_OUT"){setUser(null);setForm(null);setPacienteId(null);setApiKey("");setScreen("login");}
+    });
+    return()=>subscription.unsubscribe();
+  },[]);
+
+  const handleLogin=async(userData)=>{
+    setUser(userData);
+    const pid=await getPacienteId(userData.userId);
+    if(pid){
+      setPacienteId(pid);
+      const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
+      if(perfil){setForm(perfil);setScreen("apikey");}
+      else setScreen("apikey");
+    }else{
+      setScreen("apikey");
+    }
+  };
+
   const handleApiKey=(key)=>{setApiKey(key);setScreen(form?"app":"boasvindas");};
-  const handleOnboarding=async(f)=>{setForm(f);await saveProfile(user.userId,f);setScreen("processing");setTimeout(()=>setScreen("app"),2800);};
+
+  const handleOnboarding=async(f)=>{
+    setForm(f);
+    setScreen("processing");
+    // Salvar perfil no Supabase
+    if(pacienteId){
+      const perfilData={paciente_id:pacienteId,...f};
+      await supabase.from("perfis").upsert(perfilData,{onConflict:"paciente_id"});
+      // Atualizar dados do paciente
+      await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo}).eq("id",pacienteId);
+    }
+    setTimeout(()=>setScreen("app"),2800);
+  };
+
+  const handleLogout=async()=>{
+    await supabase.auth.signOut();
+    setUser(null);setForm(null);setPacienteId(null);setApiKey("");setScreen("login");
+  };
+
+  if(screen==="loading")return <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:T.fB}}><div style={{fontFamily:T.fD,fontSize:52,color:T.gold,animation:"pulse 2s ease infinite"}}>H</div></div>;
+
   return(
     <>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap'); *{box-sizing:border-box;margin:0;padding:0} textarea{resize:none} ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:#D4CCBC;border-radius:2px} @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes pulse{0%,100%{opacity:0.4;transform:scale(0.9)}50%{opacity:1;transform:scale(1.05)}} @keyframes blink{0%,100%{opacity:0.2}50%{opacity:1}} @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
@@ -806,7 +989,7 @@ export default function HDohmann(){
       {screen==="boasvindas" && <ScreenBoasVindas onStart={()=>setScreen("onboarding")}/>}
       {screen==="onboarding" && <ScreenOnboarding user={user} onComplete={handleOnboarding}/>}
       {screen==="processing" && <ScreenProcessing/>}
-      {screen==="app"        && <AppPrincipal user={user} form={form} apiKey={apiKey} onLogout={()=>{setScreen("login");setUser(null);setApiKey("");}}/>}
+      {screen==="app"        && <AppPrincipal user={user} form={form} apiKey={apiKey} pacienteId={pacienteId} onLogout={handleLogout}/>}
     </>
   );
 }
