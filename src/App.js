@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
 
-// ─── Supabase Client ──────────────────────────────────────────────
+// ─── Supabase via CDN (carregado no index.html) ───────────────────
 const SUPABASE_URL = "https://ahznewkkcyakkilaatas.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem5ld2trY3lha2tpbGFhdGFzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyOTQzMTIsImV4cCI6MjA5MTg3MDMxMn0.4nFFkuhRTNCXFnkSQDjc_JNi0yoHUBUfT4mgcQ2-3ak";
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── Design Tokens ────────────────────────────────────────────────
 const T = {
@@ -141,6 +140,39 @@ async function marcarMensagensLidas(pacienteId){
   await supabase.from("mensagens").update({lida:true}).eq("paciente_id",pacienteId).eq("remetente","ana").eq("lida",false);
 }
 
+async function salvarAnaliseGenetica(pacienteId,analise,pdfNome){
+  try{
+    // Remover laudo genético anterior se existir
+    await supabase.from("documentos")
+      .delete()
+      .eq("paciente_id",pacienteId)
+      .eq("tipo","genetico");
+    // Inserir novo
+    const{error}=await supabase.from("documentos").insert({
+      paciente_id:pacienteId,
+      titulo:`Laudo Genético — ${pdfNome}`,
+      tipo:"genetico",origem:"paciente",
+      resumo:analise?.resumo||"",
+      conteudo_json:{...analise,pdfNome},
+      data:new Date().toISOString().slice(0,10),
+    });
+    if(error)console.error("Erro ao salvar laudo:",error);
+    else console.log("Laudo salvo com sucesso");
+  }catch(e){console.error("Erro ao salvar laudo:",e);}
+}
+
+async function carregarAnaliseGenetica(pacienteId){
+  const{data}=await supabase.from("documentos")
+    .select("conteudo_json,titulo")
+    .eq("paciente_id",pacienteId)
+    .eq("tipo","genetico")
+    .order("created_at",{ascending:false})
+    .limit(1)
+    .single();
+  if(!data)return null;
+  return{analise:data.conteudo_json,pdfNome:data.conteudo_json?.pdfNome||data.titulo};
+}
+
 // ─── UI Primitives ────────────────────────────────────────────────
 function Lbl({children,color}){return <div style={{fontSize:9,letterSpacing:"0.18em",color:color||T.inkLight,textTransform:"uppercase",marginBottom:8,fontFamily:T.fB,fontWeight:600}}>{children}</div>;}
 function Card({children,style={},onClick,hover=false}){const[hov,setHov]=useState(false);return <div onClick={onClick} onMouseOver={()=>hover&&setHov(true)} onMouseOut={()=>hover&&setHov(false)} style={{background:T.surface,borderRadius:12,boxShadow:hov?T.shadowHover:T.shadowCard,border:`1px solid ${T.border}`,transition:"all 0.2s",cursor:onClick?"pointer":"default",...style}}>{children}</div>;}
@@ -162,11 +194,15 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
 
   // Carregar histórico do Supabase
   useEffect(()=>{
-    if(!pacienteId)return;
-    carregarHistoricoChat(pacienteId,membro).then(hist=>{
-      if(hist.length>0)setMsgs([{role:"assistant",content:inicialMsg},...hist]);
-      setCarregando(false);
-    }).catch(()=>setCarregando(false));
+    if(!pacienteId){setCarregando(false);return;}
+    // Pequeno delay para não conflitar com chamadas anteriores (ex: análise de PDF)
+    const timer=setTimeout(()=>{
+      carregarHistoricoChat(pacienteId,membro).then(hist=>{
+        if(hist.length>0)setMsgs([{role:"assistant",content:inicialMsg},...hist]);
+        setCarregando(false);
+      }).catch(()=>setCarregando(false));
+    },3000);
+    return()=>clearTimeout(timer);
   },[pacienteId,membro]);
 
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
@@ -178,12 +214,18 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
     setInput("");setLoading(true);
     // Salvar mensagem do usuário no Supabase
     if(pacienteId)await salvarMensagemChat(pacienteId,membro,"user",text);
+    // Se tem PDF, usar haiku e aguardar um pouco para evitar rate limit
+    const modeloUsado="claude-sonnet-4-20250514";
+    // PDF só é enviado se explicitamente passado (geneticista agora usa JSON)
+    if(pdfB64)await new Promise(r=>setTimeout(r,1000));
+    const enviarMensagem=async(tentativa=1)=>{
     try{
       const history=[...msgs,userMsg].filter(m=>!m.loading).map((m,i)=>{
         if(i===0&&pdfB64&&m.role==="user")return{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:m.content}]};
         return{role:m.role,content:m.content};
       });
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:900,system:systemPrompt,messages:history})});
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:modeloUsado,max_tokens:900,system:systemPrompt,messages:history})});
+      if(res.status===429&&tentativa<3){await new Promise(r=>setTimeout(r,3000*tentativa));return enviarMensagem(tentativa+1);}
       const data=await res.json();
       const resposta=data.content?.[0]?.text||"Erro ao processar.";
       setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:resposta}]);
@@ -192,6 +234,8 @@ function ChatIA({membro,systemPrompt,apiKey,placeholder,sugestoes,inicialMsg,pdf
     }catch{
       setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:"Erro de conexão. Verifique sua API Key."}]);
     }finally{setLoading(false);setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);inputRef.current?.focus();}
+  };
+  await enviarMensagem();
   };
 
   if(carregando)return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{fontSize:12,color:T.inkFaint}}>Carregando histórico...</div></div>;
@@ -451,6 +495,7 @@ function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
   const[checkinHoje,setCheckinHoje]=useState(null);
   const[planLog,setPlanLog]=useState([]);
   const[mensagensNaoLidas,setMensagensNaoLidas]=useState(0);
+  const[laudoGenetico,setLaudoGenetico]=useState({pdfB64:null,pdfNome:null,analise:null});
   const scores=calcScores(form,checkinHoje);
   const nome=form?.nome||user.name||"Executivo";
   const initials=nome.split(" ").slice(0,2).map(n=>n[0]).join("").toUpperCase();
@@ -460,8 +505,11 @@ function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
     const hoje=new Date().toISOString().slice(0,10);
     carregarCheckinHoje(pacienteId).then(ci=>{if(ci&&ci.data===hoje)setCheckinHoje(ci);});
     carregarPlanLog(pacienteId).then(log=>setPlanLog(log));
-    // Contar mensagens não lidas
     supabase.from("mensagens").select("id",{count:"exact"}).eq("paciente_id",pacienteId).eq("lida",false).eq("remetente","ana").then(({count})=>setMensagensNaoLidas(count||0));
+    // Carregar análise genética salva
+    carregarAnaliseGenetica(pacienteId).then(res=>{
+      if(res)setLaudoGenetico({pdfB64:null,pdfNome:res.pdfNome,analise:res.analise});
+    });
   },[pacienteId]);
 
   const onPlanUpdate=useCallback(async(evento)=>{
@@ -537,7 +585,7 @@ function AppPrincipal({user,form,apiKey,pacienteId,onLogout}){
         {modulo==="ana"&&<ModuloAna form={form} scores={scores} apiKey={apiKey} checkinHoje={checkinHoje} onCheckinSalvo={onCheckinSalvo} onPlanUpdate={onPlanUpdate} pacienteId={pacienteId} systemPrompt={buildPrompt("enfermeira")}/>}
         {modulo==="coach"&&<ModuloChat membro="coach" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("coach")} inicialMsg={`Olá, ${nome.split(" ")[0]}! Score: ${scores.total}/100. Foco em ${lowAxis[0]} (${lowAxis[1]}/100). Como posso ajudar?`} sugestoes={[`Como melhorar meu ${lowAxis[0].toLowerCase()}?`,"Qual minha prioridade esta semana?","Como o estresse afeta meu sono?"]}/>}
         {modulo==="farmaceutico"&&<ModuloChat membro="farmaceutico" form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("farmaceutico")} inicialMsg={`Olá! Sou Rafael. Medicamentos: ${(form?.meds||[]).filter(m=>m!=="Nenhum").join(", ")||"nenhum"}. Em que posso ajudar?`} sugestoes={["Verificar interações","Como tomar minha medicação?","Posso tomar vitaminas junto?"]}/>}
-        {modulo==="geneticista"&&<ModuloGeneticista form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("geneticista")}/>}
+        {modulo==="geneticista"&&<ModuloGeneticista form={form} scores={scores} apiKey={apiKey} pacienteId={pacienteId} systemPrompt={buildPrompt("geneticista")} laudoState={laudoGenetico} setLaudoState={setLaudoGenetico}/>}
         {modulo==="documentos"&&<ModuloDocumentos apiKey={apiKey} pacienteId={pacienteId} onPlanUpdate={onPlanUpdate}/>}
         {modulo==="mensagens"&&<ModuloMensagens pacienteId={pacienteId} nome={nome}/>}
         {modulo==="integracoes"&&<ModuloIntegracoes/>}
@@ -623,23 +671,132 @@ function ModuloAna({form,scores,apiKey,checkinHoje,onCheckinSalvo,onPlanUpdate,p
 }
 
 // ─── Módulo Geneticista ───────────────────────────────────────────
-function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt}){
+
+// ─── Chat isolado da Dra. Clara ───────────────────────────────────
+function ChatGeneticista({apiKey,analise,pdfNome,systemPrompt}){
   const eq=EQUIPE.find(e=>e.id==="geneticista");
-  const[pdfB64,setPdfB64]=useState(null);const[pdfNome,setPdfNome]=useState(null);
-  const[analise,setAnalise]=useState(null);const[analisando,setAnalisando]=useState(false);
+  const inicialMsg=`Olá! Analisei seu laudo "${pdfNome||"genético"}".
+
+${analise?.resumo||"Tenho todos os achados em mãos."}
+
+O que gostaria de saber?`;
+  const[msgs,setMsgs]=useState([{role:"assistant",content:inicialMsg}]);
+  const[input,setInput]=useState("");
+  const[loading,setLoading]=useState(false);
+  const bottomRef=useRef(null);
+  const inputRef=useRef(null);
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[msgs]);
+
+  const send=async(text)=>{
+    if(!text.trim()||loading||!apiKey)return;
+    const userMsg={role:"user",content:text};
+    setMsgs(prev=>[...prev,userMsg,{role:"assistant",content:"",loading:true}]);
+    setInput("");setLoading(true);
+    const analiseResumida={resumo:analise?.resumo,nivel_risco_geral:analise?.nivel_risco_geral,achados:(analise?.achados||[]).slice(0,6),nutricao:analise?.nutricao,atividade:analise?.atividade,sono:analise?.sono,medicamentos:analise?.medicamentos,rastreamento:analise?.rastreamento};
+    const system=`${systemPrompt}
+
+RESULTADOS DO LAUDO "${pdfNome}":
+${JSON.stringify(analiseResumida)}
+
+Responda com precisão clínica baseada nestes achados.`;
+    const tentarEnviar=async(tentativa=1)=>{
+      try{
+        const history=msgs.concat(userMsg).filter(m=>!m.loading).map(m=>({role:m.role,content:m.content}));
+        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system,messages:history})});
+        if(res.status===429&&tentativa<4){
+          await new Promise(r=>setTimeout(r,5000*tentativa));
+          return tentarEnviar(tentativa+1);
+        }
+        const data=await res.json();
+        const resposta=data.content?.[0]?.text||"Erro ao processar.";
+        setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:resposta}]);
+      }catch{
+        setMsgs(prev=>[...prev.slice(0,-1),{role:"assistant",content:"Erro de conexão."}]);
+      }finally{
+        setLoading(false);
+        setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),100);
+        inputRef.current?.focus();
+      }
+    };
+    await tentarEnviar();
+  };
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{flex:1,overflowY:"auto",padding:"24px 28px 8px"}}>
+        {msgs.map((msg,i)=>{const isUser=msg.role==="user";return(<div key={i} style={{display:"flex",flexDirection:isUser?"row-reverse":"row",gap:12,marginBottom:20,alignItems:"flex-start"}}>{!isUser&&<div style={{width:36,height:36,borderRadius:"50%",background:eq.bg,border:`1.5px solid ${eq.cor}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,marginTop:2}}>{eq.icon}</div>}<div style={{maxWidth:"74%",padding:"14px 18px",background:isUser?T.goldFaint:T.surface,border:`1px solid ${isUser?T.goldBorder:T.border}`,borderRadius:isUser?"16px 16px 4px 16px":"4px 16px 16px 16px",fontSize:13,color:T.ink,lineHeight:1.8,whiteSpace:"pre-wrap",boxShadow:T.shadowCard}}>{msg.loading?<span style={{display:"inline-flex",gap:5}}>{[0,1,2].map(j=><span key={j} style={{width:6,height:6,borderRadius:"50%",background:eq.cor,display:"inline-block",animation:`blink 1.2s ease ${j*0.2}s infinite`}}/>)}</span>:msg.content}</div></div>);})}
+        <div ref={bottomRef}/>
+      </div>
+      {msgs.length<=1&&(
+        <div style={{padding:"0 28px 14px",display:"flex",gap:8,flexWrap:"wrap",flexShrink:0}}>
+          {["O que significam minhas variantes de risco?","Como isso afeta minha nutrição?","Quais exames preventivos são prioritários?","Como meus genes afetam meus medicamentos?"].map((s,i)=>(<button key={i} onClick={()=>send(s)} style={{padding:"8px 16px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:20,fontSize:12,color:T.inkMid,cursor:"pointer",fontFamily:T.fB,transition:"all 0.18s"}} onMouseOver={e=>{e.currentTarget.style.borderColor=eq.cor;e.currentTarget.style.color=eq.cor;}} onMouseOut={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.inkMid;}}>{s}</button>))}
+        </div>
+      )}
+      <div style={{borderTop:`1px solid ${T.border}`,padding:"14px 28px",display:"flex",gap:10,alignItems:"flex-end",flexShrink:0,background:T.bgWarm}}>
+        <textarea ref={inputRef} rows={1} placeholder="Pergunte sobre seus resultados genéticos..." value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,120)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input);}}} disabled={loading||!apiKey} style={{flex:1,background:T.surface,border:`1.5px solid ${T.border}`,borderRadius:10,padding:"12px 16px",color:T.ink,fontFamily:T.fB,fontSize:13,outline:"none",lineHeight:1.6,minHeight:44,maxHeight:120,overflow:"hidden",resize:"none",boxShadow:T.shadowCard}}/>
+        <button onClick={()=>send(input)} disabled={loading||!input.trim()||!apiKey} style={{width:44,height:44,borderRadius:10,background:(!loading&&input.trim()&&apiKey)?eq.cor:"transparent",border:`1.5px solid ${(!loading&&input.trim()&&apiKey)?eq.cor:T.border}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:(!loading&&input.trim()&&apiKey)?"#FFF":T.inkFaint,transition:"all 0.2s",flexShrink:0,fontWeight:700}}>{loading?"…":"↑"}</button>
+      </div>
+    </div>
+  );
+}
+
+function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt,laudoState,setLaudoState}){
+  const eq=EQUIPE.find(e=>e.id==="geneticista");
+  const pdfB64=laudoState?.pdfB64||null;
+  const pdfNome=laudoState?.pdfNome||null;
+  const analise=laudoState?.analise||null;
+  const setPdfB64=(v)=>setLaudoState(p=>({...p,pdfB64:v}));
+  const setPdfNome=(v)=>setLaudoState(p=>({...p,pdfNome:v}));
+  const setAnalise=(v)=>setLaudoState(p=>({...p,analise:typeof v==="function"?v(p.analise):v}));
+  const[analisando,setAnalisando]=useState(false);
   const[aba,setAba]=useState("risco");const[chatKey,setChatKey]=useState(0);
   const fileRef=useRef(null);
+  // Recalcular aba quando laudoState muda
+  useEffect(()=>{if(analise&&!analisando)setAba("risco");},[analise]);
 
   const handlePdf=async(file)=>{
-    if(!file)return;setPdfNome(file.name);setAnalisando(true);setAba("risco");
+    if(!file)return;
+    console.log("=== HANDLE PDF INICIADO ===");
+    console.log("file:",file.name,"size:",file.size);
+    console.log("pacienteId disponível:",pacienteId);
+    console.log("apiKey disponível:",!!apiKey);
+    setPdfNome(file.name);setAnalisando(true);setAba("risco");
     const toB64=(f)=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(",")[1]);r.onerror=rej;r.readAsDataURL(f);});
+    const chamarAPI=async(b64,tentativa=1)=>{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1500,system:`Analise o laudo genético e retorne APENAS JSON sem markdown: {"resumo":"2-3 frases","nivel_risco_geral":"alto|moderado|baixo","achados":[{"categoria":"nome","gene":"gene","variante":"descrição","impacto":"alto|moderado|baixo","orientacao":"orientação clínica"}],"nutricao":"recomendação","atividade":"recomendação","sono":"orientação","medicamentos":"farmacogenômica","rastreamento":"exames preventivos","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem"}]}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
+      if(res.status===429&&tentativa<3){
+        await new Promise(r=>setTimeout(r,3000*tentativa));
+        return chamarAPI(b64,tentativa+1);
+      }
+      return res;
+    };
     try{
       const b64=await toB64(file);setPdfB64(b64);
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,system:`Analise o laudo genético e retorne APENAS JSON sem markdown: {"resumo":"2-3 frases","nivel_risco_geral":"alto|moderado|baixo","achados":[{"categoria":"nome","gene":"gene","variante":"descrição","impacto":"alto|moderado|baixo","orientacao":"orientação clínica"}],"nutricao":"recomendação","atividade":"recomendação","sono":"orientação","medicamentos":"farmacogenômica","rastreamento":"exames preventivos","alertas":[{"nivel":"critico|atencao|informativo","msg":"mensagem"}]}`,messages:[{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:"Analise este laudo genético."}]}]})});
+      // Salvar PDF no storage do Supabase se pacienteId disponível
+      if(pacienteId){
+        try{
+          const blob=new Blob([file],{type:"application/pdf"});
+          await supabase.storage.from("documentos").upload(`${pacienteId}/laudo-genetico.pdf`,blob,{upsert:true});
+        }catch(e){console.log("Storage upload opcional falhou:",e);}
+      }
+      const res=await chamarAPI(b64);
       const data=await res.json();
-      setAnalise(JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim()));
+      if(data.error){setAnalise({erro:`Erro: ${data.error.message||"Tente novamente em alguns segundos."}`});return;}
+      const parsed=JSON.parse((data.content?.[0]?.text||"{}").replace(/```json|```/g,"").trim());
+      setAnalise(parsed);
       setChatKey(k=>k+1);
-    }catch{setAnalise({erro:"Erro ao analisar."});}finally{setAnalisando(false);}
+      // Salvar análise no Supabase para persistir entre sessões
+      console.log("=== DEBUG LAUDO ===");
+      console.log("pacienteId:",pacienteId);
+      console.log("analise resumo:",parsed?.resumo?.slice(0,50));
+      if(pacienteId){
+        console.log("Salvando laudo no banco...");
+        await salvarAnaliseGenetica(pacienteId,parsed,file.name);
+        console.log("Laudo salvo!");
+      }else{
+        console.error("ERRO: pacienteId é null — laudo não será salvo");
+      }
+    }catch(e){setAnalise({erro:"Erro ao analisar. Tente novamente."});}finally{setAnalisando(false);}
   };
 
   const ic=(i)=>({alto:T.red,moderado:T.gold,baixo:T.green})[i]||T.inkMid;
@@ -676,7 +833,8 @@ function ModuloGeneticista({form,scores,apiKey,pacienteId,systemPrompt}){
           )}
         </div>
       )}
-      {aba==="chat"&&(!pdfB64?<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:40,textAlign:"center"}}><div style={{fontSize:48}}>🧬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Carregue seu laudo primeiro</div><Btn onClick={()=>fileRef.current?.click()} variant="outline" style={{borderColor:T.purple,color:T.purple}}>SELECIONAR PDF →</Btn></div>:<ChatIA key={chatKey} membro="geneticista" apiKey={apiKey} pdfB64={pdfB64} placeholder="Pergunte sobre seus resultados..." inicialMsg={`Olá! Li seu laudo "${pdfNome}". Pronta para suas perguntas.`} sugestoes={["O que significam minhas variantes?","Como isso afeta minha nutrição?","Quais exames preventivos devo fazer?"]} systemPrompt={systemPrompt} pacienteId={pacienteId}/>)}
+      {aba==="chat"&&(!pdfB64?<div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:40,textAlign:"center"}}><div style={{fontSize:48}}>🧬</div><div style={{fontFamily:T.fD,fontSize:22,color:T.inkMid}}>Carregue seu laudo primeiro</div><Btn onClick={()=>fileRef.current?.click()} variant="outline" style={{borderColor:T.purple,color:T.purple}}>SELECIONAR PDF →</Btn></div>:<ChatGeneticista apiKey={apiKey} analise={analise} pdfNome={pdfNome} systemPrompt={systemPrompt}/>
+  )}
     </div>
   );
 }
@@ -953,23 +1111,41 @@ export default function HDohmann(){
       setPacienteId(pid);
       const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
       if(perfil){setForm(perfil);setScreen("apikey");}
-      else setScreen("apikey");
+      else{setForm(null);setScreen("apikey");}
     }else{
-      setScreen("apikey");
+      setForm(null);setScreen("apikey");
     }
   };
 
-  const handleApiKey=(key)=>{setApiKey(key);setScreen(form?"app":"boasvindas");};
+  const handleApiKey=async(key)=>{
+    setApiKey(key);
+    // Recarregar pacienteId e perfil com a chave já definida
+    if(user){
+      const pid=await getPacienteId(user.userId);
+      if(pid){
+        setPacienteId(pid);
+        const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
+        if(perfil){setForm(perfil);setScreen("app");return;}
+      }
+    }
+    setScreen("boasvindas");
+  };
 
   const handleOnboarding=async(f)=>{
     setForm(f);
     setScreen("processing");
-    // Salvar perfil no Supabase
-    if(pacienteId){
-      const perfilData={paciente_id:pacienteId,...f};
-      await supabase.from("perfis").upsert(perfilData,{onConflict:"paciente_id"});
-      // Atualizar dados do paciente
-      await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo}).eq("id",pacienteId);
+    // Garantir que temos o pacienteId mais atualizado
+    let pid=pacienteId;
+    if(!pid&&user){
+      pid=await getPacienteId(user.userId);
+      if(pid)setPacienteId(pid);
+    }
+    if(pid){
+      try{
+        const perfilData={paciente_id:pid,...f};
+        await supabase.from("perfis").upsert(perfilData,{onConflict:"paciente_id"});
+        await supabase.from("pacientes").update({nome:f.nome,cargo:f.cargo||""}).eq("id",pid);
+      }catch(e){console.error("Erro ao salvar perfil:",e);}
     }
     setTimeout(()=>setScreen("app"),2800);
   };
