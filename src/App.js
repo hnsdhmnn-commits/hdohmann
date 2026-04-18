@@ -284,15 +284,17 @@ function ScreenLogin({onLogin}){
         const{data,error}=await supabase.auth.signUp({email,password:pass,options:{data:{name}}});
         if(error)throw error;
         if(data.user){
-          // Criar registro na tabela pacientes
-          // Médico padrão — buscar o primeiro médico cadastrado
-          const{data:medico}=await supabase.from("medicos").select("id").limit(1).single();
-          await supabase.from("pacientes").insert({
-            user_id:data.user.id,
-            medico_id:medico?.id,
-            nome:name,email,
-            plano:"Essential",
-          });
+          // Tentar criar registro na tabela pacientes
+          try{
+            const{data:medico}=await supabase.from("medicos").select("id").limit(1).maybeSingle();
+            const{error:insErr}=await supabase.from("pacientes").insert({
+              user_id:data.user.id,
+              medico_id:medico?.id||"c0618c54-a555-4781-8e91-075f8898e54a",
+              nome:name,email,
+              plano:"Essential",
+            });
+            if(insErr)console.warn("Paciente será criado após confirmação de e-mail:",insErr.message);
+          }catch(e){console.warn("Erro ao criar paciente:",e);}
           onLogin({userId:data.user.id,email,name});
         }
       }else{
@@ -1127,10 +1129,23 @@ export default function HDohmann(){
 
   const handleLogin=async(userData)=>{
     setUser(userData);
-    const pid=await getPacienteId(userData.userId);
+    let pid=await getPacienteId(userData.userId);
+    // Se não tem paciente, criar automaticamente
+    if(!pid){
+      try{
+        const{data:medico}=await supabase.from("medicos").select("id").limit(1).maybeSingle();
+        const{data:novoPac}=await supabase.from("pacientes").insert({
+          user_id:userData.userId,
+          medico_id:medico?.id||"c0618c54-a555-4781-8e91-075f8898e54a",
+          nome:userData.name,email:userData.email,
+          plano:"Essential",
+        }).select("id").single();
+        if(novoPac)pid=novoPac.id;
+      }catch(e){console.warn("Erro ao criar paciente no login:",e);}
+    }
     if(pid){
       setPacienteId(pid);
-      const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).single();
+      const{data:perfil}=await supabase.from("perfis").select("*").eq("paciente_id",pid).maybeSingle();
       if(perfil){setForm(perfil);setScreen("apikey");}
       else{setForm(null);setScreen("apikey");}
     }else{
